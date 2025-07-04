@@ -1,0 +1,48 @@
+﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <PropertyGroup>
+        <ProjectGuid>{965F618F-9434-4A32-BD5C-E0FBE1E850E8}</ProjectGuid>
+    </PropertyGroup>
+    <ItemGroup>
+        <Projects Include="DTSuperTEFPKG.dproj">
+            <Dependencies/>
+        </Projects>
+        <Projects Include="Demo\Demo.dproj">
+            <Dependencies/>
+        </Projects>
+    </ItemGroup>
+    <ProjectExtensions>
+        <Borland.Personality>Default.Personality.12</Borland.Personality>
+        <Borland.ProjectType/>
+        <BorlandProject>
+            <Default.Personality/>
+        </BorlandProject>
+    </ProjectExtensions>
+    <Target Name="DTSuperTEFPKG">
+        <MSBuild Projects="DTSuperTEFPKG.dproj"/>
+    </Target>
+    <Target Name="DTSuperTEFPKG:Clean">
+        <MSBuild Projects="DTSuperTEFPKG.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="DTSuperTEFPKG:Make">
+        <MSBuild Projects="DTSuperTEFPKG.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Demo">
+        <MSBuild Projects="Demo\Demo.dproj"/>
+    </Target>
+    <Target Name="Demo:Clean">
+        <MSBuild Projects="Demo\Demo.dproj" Targets="Clean"/>
+    </Target>
+    <Target Name="Demo:Make">
+        <MSBuild Projects="Demo\Demo.dproj" Targets="Make"/>
+    </Target>
+    <Target Name="Build">
+        <CallTarget Targets="DTSuperTEFPKG;Demo"/>
+    </Target>
+    <Target Name="Clean">
+        <CallTarget Targets="DTSuperTEFPKG:Clean;Demo:Clean"/>
+    </Target>
+    <Target Name="Make">
+        <CallTarget Targets="DTSuperTEFPKG:Make;Demo:Make"/>
+    </Target>
+    <Import Project="$(BDS)\Bin\CodeGear.Group.Targets" Condition="Exists('$(BDS)\Bin\CodeGear.Group.Targets')"/>
+</Project>
