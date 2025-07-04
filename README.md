@@ -1,7 +1,6 @@
 # 💳 DTSuperTEF
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Delphi-7.0+-red.svg" alt="Delphi Version">
+<p align="center">  
   <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License">
   <img src="https://img.shields.io/badge/Platform-Windows-lightgrey.svg" alt="Platform">
   <img src="https://img.shields.io/badge/API-REST-green.svg" alt="API">
