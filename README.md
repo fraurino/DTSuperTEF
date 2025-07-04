@@ -359,7 +359,7 @@ Este projeto está sob a licença MIT. Veja o arquivo `LICENSE` para mais detalh
 ## 🔗 Links Úteis
 
 - [Site Oficial SuperTEF](https://www.supertef.com.br)
-- [Documentação da API](https://docs.supertef.com.br)
+- [Documentação da API](https://supertef.apidog.io)
 
 
 ## 📞 Suporte
