@@ -59,7 +59,7 @@ type
       POSId: Integer;
       const TransactionType: string;
       InstallmentCount, InstallmentType: Integer;
-      Amount: Extended;
+      Amount: Integer;
       const OrderID, Description: string
     ): TJSONObject;
 
@@ -258,19 +258,14 @@ end;
 // === PAGAMENTOS ===
 
 function TDTSuperTEF.CriarPagamento(const ClienteChave: string; POSId: Integer; const TransactionType: string;
-  InstallmentCount, InstallmentType: Integer; Amount: Extended; const OrderID, Description: string): TJSONObject;
+  InstallmentCount, InstallmentType: Integer; Amount: Integer; const OrderID, Description: string): TJSONObject;
 var
   JSON: TJSONObject;
 begin
   JSON := TJSONObject.Create;
   try
     JSON.AddPair('cliente_chave', ClienteChave);
-
-    if POSId = 0 then
-     JSON.AddPair('pos_id', TJSONNull.Create)
-    else
-     JSON.AddPair('pos_id', TJSONNumber.Create(POSId));
-
+    JSON.AddPair('pos_id', TJSONNumber.Create(POSId));
     JSON.AddPair('transaction_type', TransactionType);
     JSON.AddPair('installment_count', TJSONNumber.Create(InstallmentCount));
     JSON.AddPair('installment_type', TJSONNumber.Create(InstallmentType));

@@ -25,7 +25,7 @@ object Form1: TForm1
     Top = 8
     Width = 780
     Height = 369
-    ActivePage = tsPagamentos
+    ActivePage = tsClientes
     TabOrder = 0
     object tsClientes: TTabSheet
       Caption = 'Clientes'
@@ -508,7 +508,7 @@ object Form1: TForm1
   end
   object DTSuperTEF1: TDTSuperTEF
     BaseURL = 'https://api.supertef.com.br/api/'
-    Left = 528
-    Top = 104
+    Left = 536
+    Top = 128
   end
 end
