@@ -1,0 +1,210 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages,Vcl.StdCtrls,System.SysUtils, System.Variants,
+  System.Classes, Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
+  Vcl.ComCtrls, DTSuperTEF, System.JSON;
+
+type
+  TForm1 = class(TForm)
+    PageControl1: TPageControl;
+    tsClientes: TTabSheet;
+    tsPOS: TTabSheet;
+    tsPagamentos: TTabSheet;
+    MemoLog: TMemo;
+
+    // --- Clientes ---
+    edtCliAtivo: TEdit;
+    edtCliCNPJ: TEdit;
+    edtCliNome: TEdit;
+    edtCliContato: TEdit;
+    edtCliLimitePOS: TEdit;
+    edtCliSitefEmpresa: TEdit;
+    edtCliSitefCNPJ: TEdit;
+    edtCliSitefBanco: TEdit;
+    edtCliChave: TEdit;
+
+    btnCriarCliente: TButton;
+    btnListarClientes: TButton;
+    btnDetalharCliente: TButton;
+    btnAtualizarCliente: TButton;
+
+    // --- POS ---
+    edtPOSChaveCliente: TEdit;
+    edtPOSStatus: TEdit;
+    edtPOSNome: TEdit;
+    edtPOSId: TEdit;
+
+    btnCriarPOS: TButton;
+    btnListarPOS: TButton;
+    btnDetalharPOS: TButton;
+    btnAtualizarPOS: TButton;
+    btnExcluirPOS: TButton;
+
+    // --- Pagamentos ---
+    edtPayChaveCliente: TEdit;
+    edtPayPOSId: TEdit;
+    edtPayTransType: TEdit;
+    edtPayParcelas: TEdit;
+    edtPayParceladoTipo: TEdit;
+    edtPayValor: TEdit;
+    edtPayOrderID: TEdit;
+    edtPayDescricao: TEdit;
+    edtPayUniqueID: TEdit;
+
+    btnCriarPagamento: TButton;
+    btnListarPagamentos: TButton;
+    btnDetalharPagamento: TButton;
+
+    DTSuperTEF1: TDTSuperTEF;
+
+    procedure FormCreate(Sender: TObject);
+    procedure btnCriarClienteClick(Sender: TObject);
+    procedure btnListarClientesClick(Sender: TObject);
+    procedure btnDetalharClienteClick(Sender: TObject);
+    procedure btnAtualizarClienteClick(Sender: TObject);
+
+    procedure btnCriarPOSClick(Sender: TObject);
+    procedure btnListarPOSClick(Sender: TObject);
+    procedure btnDetalharPOSClick(Sender: TObject);
+    procedure btnAtualizarPOSClick(Sender: TObject);
+    procedure btnExcluirPOSClick(Sender: TObject);
+
+    procedure btnCriarPagamentoClick(Sender: TObject);
+    procedure btnListarPagamentosClick(Sender: TObject);
+    procedure btnDetalharPagamentoClick(Sender: TObject);
+
+  private
+    procedure LogJSON(AJSON: TJSONObject);
+  public
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.FormCreate(Sender: TObject);
+begin
+  DTSuperTEF1.Token := 'f4a3b656f28cd4a3314e3d62adb7a1bfaf352313dbf8b15f1f5824ebbb963859';
+end;
+
+procedure TForm1.LogJSON(AJSON: TJSONObject);
+begin
+  MemoLog.Lines.Add(AJSON.Format(4));
+  MemoLog.Lines.Add('---');
+  AJSON.Free;
+end;
+
+// === Clientes ===
+
+procedure TForm1.btnCriarClienteClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.CriarCliente(
+    StrToIntDef(edtCliAtivo.Text, 1),
+    edtCliCNPJ.Text,
+    edtCliNome.Text,
+    edtCliContato.Text,
+    StrToIntDef(edtCliLimitePOS.Text, 1),
+    edtCliSitefEmpresa.Text,
+    edtCliSitefCNPJ.Text,
+    edtCliSitefBanco.Text
+  ));
+end;
+
+procedure TForm1.btnListarClientesClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.ListarClientes);
+end;
+
+procedure TForm1.btnDetalharClienteClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.DetalharCliente(edtCliChave.Text));
+end;
+
+procedure TForm1.btnAtualizarClienteClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.AtualizarCliente(
+    edtCliChave.Text,
+    StrToIntDef(edtCliAtivo.Text, 1),
+    edtCliCNPJ.Text,
+    edtCliNome.Text,
+    edtCliContato.Text,
+    StrToIntDef(edtCliLimitePOS.Text, 1),
+    edtCliSitefEmpresa.Text,
+    edtCliSitefCNPJ.Text,
+    edtCliSitefBanco.Text
+  ));
+end;
+
+// === POS ===
+
+procedure TForm1.btnCriarPOSClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.CriarPOS(
+    edtPOSChaveCliente.Text,
+    StrToIntDef(edtPOSStatus.Text, 1),
+    edtPOSNome.Text
+  ));
+end;
+
+procedure TForm1.btnListarPOSClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.ListarPOS(edtPOSChaveCliente.Text));
+end;
+
+procedure TForm1.btnDetalharPOSClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.DetalharPOS(StrToIntDef(edtPOSId.Text, 0)));
+end;
+
+procedure TForm1.btnAtualizarPOSClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.AtualizarPOS(
+    StrToIntDef(edtPOSId.Text, 0),
+    edtPOSChaveCliente.Text,
+    StrToIntDef(edtPOSStatus.Text, 1),
+    edtPOSNome.Text
+  ));
+end;
+
+procedure TForm1.btnExcluirPOSClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.ExcluirPOS(
+    StrToIntDef(edtPOSId.Text, 0),
+    edtPOSChaveCliente.Text
+  ));
+end;
+
+// === Pagamentos ===
+
+procedure TForm1.btnCriarPagamentoClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.CriarPagamento(
+    edtPayChaveCliente.Text,
+    StrToIntDef(edtPayPOSId.Text, 0),
+    edtPayTransType.Text,
+    StrToIntDef(edtPayParcelas.Text, 1),
+    StrToIntDef(edtPayParceladoTipo.Text, 1),
+    StrToIntDef(edtPayValor.Text, 0),
+    edtPayOrderID.Text,
+    edtPayDescricao.Text
+  ));
+end;
+
+procedure TForm1.btnListarPagamentosClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.ListarPagamentos);
+end;
+
+procedure TForm1.btnDetalharPagamentoClick(Sender: TObject);
+begin
+  LogJSON(DTSuperTEF1.DetalharPagamento(StrToIntDef(edtPayUniqueID.Text, 0)));
+end;
+
+end.
+
