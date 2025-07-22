@@ -42,6 +42,7 @@ O **SuperTEF** é uma solução brasileira para automação de pagamentos digita
 - ✅ Criar transações de pagamento
 - ✅ Listar histórico de transações
 - ✅ Detalhar informações de pagamento
+- ✅ Rejeitar informações de pagamento
 - ✅ Suporte a parcelamento
 - ✅ Diferentes tipos de transação
 
