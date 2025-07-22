@@ -14,8 +14,8 @@ object Form1: TForm1
   PixelsPerInch = 96
   TextHeight = 13
   object ButtonListaPagamento: TButton
-    Left = 48
-    Top = 24
+    Left = 40
+    Top = 56
     Width = 193
     Height = 25
     Caption = 'Lista Pos'
@@ -23,8 +23,8 @@ object Form1: TForm1
     OnClick = ButtonListaPagamentoClick
   end
   object ButtonCadastraPagamento: TButton
-    Left = 48
-    Top = 56
+    Left = 40
+    Top = 88
     Width = 193
     Height = 25
     Caption = 'Pagamento Cadastro'
@@ -32,15 +32,15 @@ object Form1: TForm1
     OnClick = ButtonCadastraPagamentoClick
   end
   object Edit12: TEdit
-    Left = 80
-    Top = 96
+    Left = 72
+    Top = 128
     Width = 121
     Height = 21
     TabOrder = 2
   end
   object ButtonDetalha: TButton
-    Left = 48
-    Top = 120
+    Left = 40
+    Top = 152
     Width = 193
     Height = 25
     Caption = 'Detalha pagamento'
@@ -56,5 +56,14 @@ object Form1: TForm1
       'Memosupertef'
       '')
     TabOrder = 4
+  end
+  object Button1: TButton
+    Left = 40
+    Top = 192
+    Width = 193
+    Height = 25
+    Caption = 'Rejeita pagamento'
+    TabOrder = 5
+    OnClick = Button1Click
   end
 end

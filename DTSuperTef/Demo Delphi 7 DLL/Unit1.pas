@@ -16,6 +16,9 @@ uses
  procedure Pagamento_Detalha(authorization_sh: WideString;
   payment_uniqueid: integer; Result: PAnsiChar); stdcall; external 'supertef.dll' name 'Pagamento_Detalha';
 
+  procedure Pagamento_Rejeita(authorization_sh: WideString;
+  payment_uniqueid: Integer; Result: PAnsiChar); stdcall; external 'supertef.dll' name 'Pagamento_Rejeita';
+
 
   procedure Pagamento_payment_uniqueid(Result: PAnsiChar); stdcall;external 'supertef.dll' name 'Pagamento_payment_uniqueid';
   procedure Pagamento_payment_status(Result: PAnsiChar); stdcall; external 'supertef.dll' name 'Pagamento_payment_status';
@@ -35,9 +38,11 @@ type
     Edit12: TEdit;
     ButtonDetalha: TButton;
     Memo7: TMemo;
+    Button1: TButton;
     procedure ButtonListaPagamentoClick(Sender: TObject);
     procedure ButtonCadastraPagamentoClick(Sender: TObject);
     procedure ButtonDetalhaClick(Sender: TObject);
+    procedure Button1Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -166,6 +171,7 @@ begin
 authorization_sh := '';
 
 
+
 if Edit12.text = '' then
 begin
 Edit12.Focused;
@@ -214,6 +220,36 @@ end;
   pResult := '';
   Pagamento_authorization_date_time(pResult);
   memo7.Lines.Add('authorization_date_time: '+pResult);
+   end;
+
+
+
+end;
+
+procedure TForm1.Button1Click(Sender: TObject);
+var
+DLL : THandle;
+pResult : array [0..1023] of AnsiChar;
+resultado: string;
+authorization_sh : string;
+begin
+authorization_sh := '';
+
+
+
+if Edit12.text = '' then
+begin
+Edit12.Focused;
+ShowMessage('Campo Vazio');
+exit;
+end;
+    Pagamento_Rejeita(authorization_sh,strtoint(Edit12.text),pResult);
+  if pResult <> 'TRUE' then
+   begin
+   ShowMessage(pResult);
+   end else
+   begin
+   ShowMessage('Status: '+'Sucesso - pagamento rejeitado');
    end;
 
 
