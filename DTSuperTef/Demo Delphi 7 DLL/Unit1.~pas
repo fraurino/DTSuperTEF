@@ -40,7 +40,7 @@ type
     Memo7: TMemo;
     Button1: TButton;
     procedure ButtonListaPagamentoClick(Sender: TObject);
-    procedure ButtonCadastraPagamentoClick(Sender: TObject);
+   procedure ButtonCadastraPagamentoClick(Sender: TObject);
     procedure ButtonDetalhaClick(Sender: TObject);
     procedure Button1Click(Sender: TObject);
   private
@@ -58,68 +58,70 @@ implementation
 
 procedure TForm1.ButtonListaPagamentoClick(Sender: TObject);
 var
-DLL : THandle;
-pResult : array [0..1023] of AnsiChar;
-resultado: string;
-ArquivoIni: TIniFile;
+  DLL: THandle;
+  pResult: array [0..255] of AnsiChar;
+  resultado: string;
+  ArquivoIni: TIniFile;
   Secoes: TStringList;
   i: Integer;
   NomeSecao: string;
-  RetornouResultado : boolean;
-
-  authorization_sh,chave_cliente : string;
+  RetornouResultado: Boolean;
+  authorization_sh, chave_cliente: string;
 begin
+  authorization_sh := '';
+  chave_cliente := '';
 
-authorization_sh := '';
-chave_cliente  := '';
+  DLL := LoadLibrary('supertef.dll');
+  if DLL = 0 then
+  begin
+    ShowMessage('Erro ao carregar a DLL supertef.dll');
+    Exit;
+  end;
 
   try
+    FillChar(pResult, SizeOf(pResult), 0);
+    ListaPOS(authorization_sh, chave_cliente, pResult);
 
-    ListaPOS(authorization_sh,
-    chave_cliente,pResult);
-    if pResult <> 'TRUE' then
-   begin
-   ShowMessage(pResult);
-   end else
-   begin
-   memo7.clear;
-     ArquivoIni := TIniFile.Create(ExtractFilePath(Application.ExeName)+'SuperTefListaPOS.ini');
-  Secoes := TStringList.Create;
-  try
-    // Obtém todas as seções do arquivo INI
-    ArquivoIni.ReadSections(Secoes);
-
-    // Itera sobre todas as seções
-    for i := 0 to Secoes.Count - 1 do
+    if StrPas(pResult) <> 'TRUE' then
     begin
-       RetornouResultado := true;
-      NomeSecao := Secoes[i];
-     // memo7.Lines.Add('Seção: '+ NomeSecao);
-      memo7.Lines.Add('ID: '+  ArquivoIni.ReadString(NomeSecao, 'ID', ''));
-      memo7.Lines.Add('NOME: '+  ArquivoIni.ReadString(NomeSecao, 'NOME', ''));
-      memo7.Lines.Add('STATUS: '+  ArquivoIni.ReadString(NomeSecao, 'STATUS', ''));
-       memo7.Lines.Add('BANCO: '+  ArquivoIni.ReadString(NomeSecao, 'BANCO', ''));
-      memo7.Lines.Add('--------------------------------');
-      memo7.Lines.Add('');
-  end;
+      ShowMessage(StrPas(pResult));
+    end
+    else
+    begin
+      memo7.Clear;
+      ArquivoIni := TIniFile.Create(ExtractFilePath(Application.ExeName) + 'SuperTefListaPOS.ini');
+      Secoes := TStringList.Create;
+      try
+        // Obtém todas as seções do arquivo INI
+        ArquivoIni.ReadSections(Secoes);
 
+        // Itera sobre todas as seções
+        for i := 0 to Secoes.Count - 1 do
+        begin
+          RetornouResultado := True;
+          NomeSecao := Secoes[i];
+
+          memo7.Lines.Add('ID: ' + ArquivoIni.ReadString(NomeSecao, 'ID', ''));
+          memo7.Lines.Add('NOME: ' + ArquivoIni.ReadString(NomeSecao, 'NOME', ''));
+          memo7.Lines.Add('STATUS: ' + ArquivoIni.ReadString(NomeSecao, 'STATUS', ''));
+          memo7.Lines.Add('BANCO: ' + ArquivoIni.ReadString(NomeSecao, 'BANCO', ''));
+          memo7.Lines.Add('--------------------------------');
+          memo7.Lines.Add('');
+        end;
+      finally
+        Secoes.Free;
+        ArquivoIni.Free;
+      end;
+    end;
   finally
-    Secoes.Free;
-    ArquivoIni.Free;
+    FreeLibrary(DLL);
   end;
-   end;
-
-
-  finally
-
-  end;
-
 end;
 
 procedure TForm1.ButtonCadastraPagamentoClick(Sender: TObject);
 var
 DLL : THandle;
-pResult : array [0..1023] of AnsiChar;
+pResult : array [0..255] of AnsiChar;
 resultado: string;
 authorization_sh,chave_cliente : string;
 
@@ -164,7 +166,7 @@ end;
 procedure TForm1.ButtonDetalhaClick(Sender: TObject);
 var
 DLL : THandle;
-pResult : array [0..1023] of AnsiChar;
+pResult : array [0..255] of AnsiChar;
 resultado: string;
 authorization_sh : string;
 begin
@@ -229,7 +231,7 @@ end;
 procedure TForm1.Button1Click(Sender: TObject);
 var
 DLL : THandle;
-pResult : array [0..1023] of AnsiChar;
+pResult : array [0..255] of AnsiChar;
 resultado: string;
 authorization_sh : string;
 begin
