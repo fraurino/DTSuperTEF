@@ -126,8 +126,8 @@ resultado: string;
 authorization_sh,chave_cliente : string;
 
 begin
-authorization_sh := '';
-chave_cliente  := '';
+ authorization_sh := '';
+  chave_cliente := '';
 
 
 
@@ -170,7 +170,8 @@ pResult : array [0..255] of AnsiChar;
 resultado: string;
 authorization_sh : string;
 begin
-authorization_sh := '';
+ authorization_sh := '';
+
 
 
 
@@ -181,11 +182,7 @@ ShowMessage('Campo Vazio');
 exit;
 end;
 
- 
-
-
-
-    Pagamento_Detalha(authorization_sh,strtoint(Edit12.text),pResult);
+Pagamento_Detalha(authorization_sh,strtoint(Edit12.text),pResult);
 
   if pResult <> 'TRUE' then
    begin
@@ -235,7 +232,8 @@ pResult : array [0..255] of AnsiChar;
 resultado: string;
 authorization_sh : string;
 begin
-authorization_sh := '';
+ authorization_sh := '';
+
 
 
 

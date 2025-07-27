@@ -20,6 +20,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Lista Pos'
     TabOrder = 0
+    OnClick = ButtonListaPagamentoClick
   end
   object ButtonCadastraPagamento: TButton
     Left = 40
@@ -28,6 +29,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Pagamento Cadastro'
     TabOrder = 1
+    OnClick = ButtonCadastraPagamentoClick
   end
   object Edit12: TEdit
     Left = 72
@@ -43,6 +45,7 @@ object Form1: TForm1
     Height = 25
     Caption = 'Detalha pagamento'
     TabOrder = 3
+    OnClick = ButtonDetalhaClick
   end
   object Memo7: TMemo
     Left = 272
@@ -61,5 +64,6 @@ object Form1: TForm1
     Height = 25
     Caption = 'Rejeita pagamento'
     TabOrder = 5
+    OnClick = Button1Click
   end
 end
