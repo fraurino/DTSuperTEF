@@ -615,7 +615,7 @@ object Form1: TForm1
       Width = 323
       Height = 23
       TabOrder = 0
-      Text = 'f4a3b656f28cd4a3314e3d62adb7a1bfaf352313dbf8b15f1f5824ebbb963859'
+      Text = 'SEU_TOKEN'
     end
     object edtCliChave: TEdit
       Left = 336
@@ -623,7 +623,7 @@ object Form1: TForm1
       Width = 200
       Height = 23
       TabOrder = 1
-      Text = '6866b0d65b8ff'
+      Text = 'SUA_CHAVE'
     end
     object CBExibir_Json: TCheckBox
       Left = 542
