@@ -1,0 +1,401 @@
+unit Unit1;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages,
+  System.SysUtils, System.Variants, System.Classes,
+  System.StrUtils, System.Generics.Collections,
+  Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
+  DTSuperTEF, System.JSON, Vcl.ExtCtrls, Data.DB, Datasnap.DBClient, Vcl.Grids,
+  Vcl.DBGrids, Vcl.Mask;
+
+
+type
+  TForm1 = class(TForm)
+    PageControl1: TPageControl;
+    tsClientes: TTabSheet;
+    tsPOS: TTabSheet;
+    tsPagamentos: TTabSheet;
+    MemoLog: TMemo;
+    edtCliNome: TEdit;
+    edtCliContato: TEdit;
+    edtCliLimitePOS: TEdit;
+    edtCliSitefEmpresa: TEdit;
+    edtCliSitefCNPJ: TEdit;
+    edtCliSitefBanco: TEdit;
+
+    btnCriarCliente: TButton;
+    btnListarClientes: TButton;
+    btnDetalharCliente: TButton;
+    btnAtualizarCliente: TButton;
+    edtPOSNome: TEdit;
+    edtPOSId: TEdit;
+
+    btnCriarPOS: TButton;
+    btnListarPOS: TButton;
+    btnDetalharPOS: TButton;
+    btnAtualizarPOS: TButton;
+    btnExcluirPOS: TButton;
+    edtPayPOSId: TEdit;
+    edtPayTransType: TEdit;
+    edtPayParcelas: TEdit;
+    edtPayParceladoTipo: TEdit;
+    edtPayValor: TEdit;
+    edtPayOrderID: TEdit;
+    edtPayDescricao: TEdit;
+    edtPayUniqueID: TEdit;
+
+    btnCriarPagamento: TButton;
+    btnListarPagamentos: TButton;
+    btnDetalharPagamento: TButton;
+
+    DTSuperTEF1: TDTSuperTEF;
+    Label1: TLabel;
+    btnCancelarPagamento: TButton;
+    TabPagamentos: TTabSheet;
+    Panel1: TPanel;
+    Label2: TLabel;
+    edtToken: TEdit;
+    LabelCliChave: TLabel;
+    edtCliChave: TEdit;
+    CBExibir_Json: TCheckBox;
+    Panel2: TPanel;
+    Label3: TLabel;
+    edtListarPagamentosPOSId: TEdit;
+    Label4: TLabel;
+    edtListarPagamentosPage: TEdit;
+    Label5: TLabel;
+    edtListarPagamentosData_Inicial: TEdit;
+    Label6: TLabel;
+    edtListarPagamentosData_Final: TEdit;
+    Button1: TButton;
+    CBListarPagamentosEnviarChaveCliente: TCheckBox;
+    DBGrid1: TDBGrid;
+    Ds_Pagamentos: TDataSource;
+    CDS_Pagamentos: TClientDataSet;
+    edtListarPagamentosOrderId: TEdit;
+    Label7: TLabel;
+    edtCliCNPJ: TMaskEdit;
+    edtCliAtivo: TComboBox;
+    procedure btnCriarClienteClick(Sender: TObject);
+    procedure btnListarClientesClick(Sender: TObject);
+    procedure btnDetalharClienteClick(Sender: TObject);
+    procedure btnAtualizarClienteClick(Sender: TObject);
+
+    procedure btnCriarPOSClick(Sender: TObject);
+    procedure btnListarPOSClick(Sender: TObject);
+    procedure btnDetalharPOSClick(Sender: TObject);
+    procedure btnAtualizarPOSClick(Sender: TObject);
+    procedure btnExcluirPOSClick(Sender: TObject);
+
+    procedure btnCriarPagamentoClick(Sender: TObject);
+    procedure btnListarPagamentosClick(Sender: TObject);
+    procedure btnDetalharPagamentoClick(Sender: TObject);
+    procedure btnCancelarPagamentoClick(Sender: TObject);
+    procedure CBExibir_JsonClick(Sender: TObject);
+
+  private
+    procedure LogJSON(AJSON: TJSONObject; aLimpaObjeto : boolean = True);
+  public
+  end;
+
+var
+  Form1: TForm1;
+
+implementation
+
+{$R *.dfm}
+
+procedure TForm1.LogJSON(AJSON: TJSONObject; aLimpaObjeto : boolean = True);
+begin
+  MemoLog.Lines.Clear;
+  MemoLog.Lines.Add(AJSON.Format(4));
+  MemoLog.Lines.Add('---');
+
+  // Força rolagem para o topo
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
+
+  if aLimpaObjeto then
+    AJSON.Free;
+end;
+
+// === Clientes ===
+
+procedure TForm1.btnCancelarPagamentoClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.RejeitarPagamento(StrToIntDef(edtPayUniqueID.Text, 0));
+end;
+
+procedure TForm1.btnCriarClienteClick(Sender: TObject);
+var
+vAtivo : Integer;
+begin
+  if edtCliAtivo.ItemIndex = 0 then
+    vAtivo := 1
+  else
+    vAtivo := 0;
+
+  DTSuperTEF1.Token := edtToken.Text;
+
+  DTSuperTEF1.CriarCliente(
+    vAtivo,
+    edtCliCNPJ.Text,
+    edtCliNome.Text,
+    edtCliContato.Text,
+    StrToIntDef(edtCliLimitePOS.Text, 1),
+    edtCliSitefEmpresa.Text,
+    edtCliSitefCNPJ.Text,
+    edtCliSitefBanco.Text
+  );
+
+end;
+
+procedure TForm1.btnListarClientesClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.ListarClientes;
+end;
+
+procedure TForm1.btnDetalharClienteClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.DetalharCliente(edtCliChave.Text);
+end;
+
+procedure TForm1.btnAtualizarClienteClick(Sender: TObject);
+var
+vAtivo : Integer;
+begin
+  if edtCliAtivo.ItemIndex = 0 then
+    vAtivo := 1
+  else
+    vAtivo := 0;
+
+  DTSuperTEF1.Token := edtToken.Text;
+
+  DTSuperTEF1.AtualizarCliente(
+    edtCliChave.Text,
+    vAtivo,
+    edtCliCNPJ.Text,
+    edtCliNome.Text,
+    edtCliContato.Text,
+    StrToIntDef(edtCliLimitePOS.Text, 1),
+    edtCliSitefEmpresa.Text,
+    edtCliSitefCNPJ.Text,
+    edtCliSitefBanco.Text
+  );
+end;
+
+// === POS ===
+
+procedure TForm1.btnCriarPOSClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.CriarPOS(
+    edtCliChave.Text,
+    edtPOSNome.Text
+  );
+end;
+
+procedure TForm1.btnListarPOSClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.ListarPOS(edtCliChave.Text);
+end;
+
+procedure TForm1.CBExibir_JsonClick(Sender: TObject);
+begin
+  MemoLog.Visible := CBExibir_Json.Checked;
+end;
+
+procedure TForm1.btnDetalharPOSClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.DetalharPOS(StrToIntDef(edtPOSId.Text, 0));
+end;
+
+procedure TForm1.btnAtualizarPOSClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.AtualizarPOS(
+    StrToIntDef(edtPOSId.Text, 0),
+    edtCliChave.Text,
+    edtPOSNome.Text
+  );
+end;
+
+procedure TForm1.btnExcluirPOSClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.ExcluirPOS(
+    StrToIntDef(edtPOSId.Text, 0),
+    edtCliChave.Text
+  );
+end;
+
+// === Pagamentos ===
+
+procedure TForm1.btnCriarPagamentoClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.CriarPagamento(
+    edtCliChave.Text,
+    StrToIntDef(edtPayPOSId.Text, 0),
+    edtPayTransType.Text,
+    StrToIntDef(edtPayParcelas.Text, 1),
+    StrToIntDef(edtPayParceladoTipo.Text, 1),
+    StrToIntDef(edtPayValor.Text, 0),
+    edtPayOrderID.Text,
+    edtPayDescricao.Text
+  );
+end;
+
+procedure TForm1.btnListarPagamentosClick(Sender: TObject);
+var
+  dData_Inicial : TDateTime;
+  dData_Final : TDateTime;
+  aJSON: TJSONObject;
+  currentPage, lastPage: Integer;
+
+  procedure ConfigurarCamposClientDataSet(aCDS: TClientDataSet);
+  begin
+    if aCDS.Active then
+      aCDS.Close;
+
+    // Remove todos os campos existentes
+    aCDS.FieldDefs.Clear;
+
+    // Define os novos campos conforme a estrutura JSON
+    with aCDS.FieldDefs do
+    begin
+      Add('payment_uniqueid', ftInteger);
+      Add('created_at', ftString, 30);
+      Add('payment_status', ftInteger);
+      Add('payment_message', ftString, 50);
+
+      // Campos do payment_order
+      Add('order_id', ftString, 50);
+      Add('amount', ftFloat);
+      Add('installment_type', ftInteger);
+      Add('installment_count', ftInteger);
+      Add('transaction_type', ftString, 5);
+      Add('order_pos_id', ftInteger);
+
+      // Campos do payment_data
+      Add('cardholder_name', ftString, 50);
+      Add('brand', ftString, 20);
+      Add('nsu', ftString, 20);
+      Add('authorization_code', ftString, 20);
+      Add('authorization_date_time', ftString, 30);
+      Add('payment_pos_id', ftInteger);
+    end;
+
+    // Cria os campos físicos no dataset
+    aCDS.CreateDataSet;
+  end;
+
+  procedure PreencherClientDataSet(aCDS: TClientDataSet; AJSON: TJSONObject);
+  var
+    DataArray: TJSONArray;
+    i: Integer;
+    Item, Order, Payment: TJSONObject;
+  begin
+    aCDS.DisableControls;
+    // aCDS.EmptyDataSet;
+
+    try
+      DataArray := AJSON.GetValue<TJSONArray>('data');
+
+      for i := 0 to pred(DataArray.Count) do
+      begin
+        Item := DataArray.Items[i] as TJSONObject;
+
+        Order   := Item.GetValue<TJSONObject>('payment_order');
+        Payment := Item.GetValue<TJSONObject>('payment_data');
+
+        aCDS.Append;
+        aCDS.FieldByName('payment_uniqueid').AsInteger  := Item.GetValue<Integer>('payment_uniqueid');
+        aCDS.FieldByName('created_at').AsString         := Item.GetValue<string>('created_at');
+        aCDS.FieldByName('payment_status').AsInteger    := Item.GetValue<Integer>('payment_status');
+        aCDS.FieldByName('payment_message').AsString    := Item.GetValue<string>('payment_message');
+
+        if Assigned(Order) then
+        begin
+          aCDS.FieldByName('order_id').AsString           := Order.GetValue<string>('order_id');
+          aCDS.FieldByName('amount').AsFloat              := StrToFloatDef(Order.GetValue<string>('amount', '0'), 0);
+          aCDS.FieldByName('installment_type').AsInteger  := Order.GetValue<Integer>('installment_type');
+          aCDS.FieldByName('installment_count').AsInteger := Order.GetValue<Integer>('installment_count');
+          aCDS.FieldByName('transaction_type').AsString   := Order.GetValue<string>('transaction_type');
+          aCDS.FieldByName('order_pos_id').AsInteger      := Order.GetValue<Integer>('pos_id');
+        end;
+
+        if Assigned(Payment) then
+        begin
+          aCDS.FieldByName('cardholder_name').AsString        := Payment.GetValue<string>('cardholder_name', '');
+          aCDS.FieldByName('brand').AsString                  := Payment.GetValue<string>('brand', '');
+          aCDS.FieldByName('nsu').AsString                    := Payment.GetValue<string>('nsu', '');
+          aCDS.FieldByName('authorization_code').AsString     := Payment.GetValue<string>('authorization_code', '');
+          aCDS.FieldByName('authorization_date_time').AsString:= Payment.GetValue<string>('authorization_date_time', '');
+          aCDS.FieldByName('payment_pos_id').AsInteger        := Payment.GetValue<Integer>('pos_id');
+        end;
+
+        aCDS.Post;
+      end;
+    finally
+      aCDS.EnableControls;
+    end;
+  end;
+
+  function ObterPagamentosPaginado(APagina: Integer): TJSONObject;
+  begin
+    DTSuperTEF1.ListarPagamentos(
+      ifThen(CBListarPagamentosEnviarChaveCliente.Checked, edtCliChave.Text, ''),
+      StrToIntDef(edtListarPagamentosPOSId.Text, 0),
+      edtListarPagamentosOrderId.Text,
+      APagina,
+      dData_Inicial,
+      dData_Final
+    );
+  end;
+
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+
+  dData_Inicial := 0;
+  if edtListarPagamentosData_Inicial.Text <> '' then
+    dData_Inicial := StrToDate(edtListarPagamentosData_Inicial.Text);
+
+  dData_Final := 0;
+  if edtListarPagamentosData_Final.Text <> '' then
+    dData_Final := StrToDate(edtListarPagamentosData_Final.Text);
+
+  // Inicializa o dataset
+  ConfigurarCamposClientDataSet(CDS_Pagamentos);
+
+  // Página 1 (inicial)
+  currentPage := 1;
+  repeat
+    aJSON := ObterPagamentosPaginado(currentPage);
+    if currentPage = 1 then
+      LogJSON(aJSON, False); // Exibe no memo apenas a primeira página como exemplo
+
+    // Preenche o DataSet com os dados da página atual
+    PreencherClientDataSet(CDS_Pagamentos, aJSON);
+
+    // Atualiza para a próxima página
+    lastPage := aJSON.GetValue<Integer>('last_page');
+    Inc(currentPage);
+  until currentPage > lastPage;
+end;
+
+procedure TForm1.btnDetalharPagamentoClick(Sender: TObject);
+begin
+  DTSuperTEF1.Token := edtToken.Text;
+  DTSuperTEF1.DetalharPagamento(StrToIntDef(edtPayUniqueID.Text, 0));
+end;
+
+end.
+

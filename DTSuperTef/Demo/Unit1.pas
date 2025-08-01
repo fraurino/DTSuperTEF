@@ -2,11 +2,13 @@ unit Unit1;
 
 interface
 
-  uses
-  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes,
+uses
+  Winapi.Windows, Winapi.Messages,
+  System.SysUtils, System.Variants, System.Classes,
+  System.StrUtils, System.Generics.Collections,
   Vcl.Graphics, Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.ComCtrls,
-  DTSuperTEF, System.JSON;
-
+  DTSuperTEF, System.JSON, Vcl.ExtCtrls, Data.DB, Datasnap.DBClient, Vcl.Grids,
+  Vcl.DBGrids, Vcl.Mask;
 
 type
   TForm1 = class(TForm)
@@ -15,26 +17,17 @@ type
     tsPOS: TTabSheet;
     tsPagamentos: TTabSheet;
     MemoLog: TMemo;
-
-    // --- Clientes ---
-    edtCliAtivo: TEdit;
-    edtCliCNPJ: TEdit;
     edtCliNome: TEdit;
     edtCliContato: TEdit;
     edtCliLimitePOS: TEdit;
     edtCliSitefEmpresa: TEdit;
     edtCliSitefCNPJ: TEdit;
     edtCliSitefBanco: TEdit;
-    edtCliChave: TEdit;
 
     btnCriarCliente: TButton;
     btnListarClientes: TButton;
     btnDetalharCliente: TButton;
     btnAtualizarCliente: TButton;
-
-    // --- POS ---
-    edtPOSChaveCliente: TEdit;
-    edtPOSStatus: TEdit;
     edtPOSNome: TEdit;
     edtPOSId: TEdit;
 
@@ -43,9 +36,6 @@ type
     btnDetalharPOS: TButton;
     btnAtualizarPOS: TButton;
     btnExcluirPOS: TButton;
-
-    // --- Pagamentos ---
-    edtPayChaveCliente: TEdit;
     edtPayPOSId: TEdit;
     edtPayTransType: TEdit;
     edtPayParcelas: TEdit;
@@ -61,8 +51,33 @@ type
 
     DTSuperTEF1: TDTSuperTEF;
     Label1: TLabel;
-    edtToken: TEdit;
+    btnCancelarPagamento: TButton;
+    TabPagamentos: TTabSheet;
+    Panel1: TPanel;
     Label2: TLabel;
+    edtToken: TEdit;
+    LabelCliChave: TLabel;
+    edtCliChave: TEdit;
+    CBExibir_Json: TCheckBox;
+    Panel2: TPanel;
+    Label3: TLabel;
+    edtListarPagamentosPOSId: TEdit;
+    Label4: TLabel;
+    edtListarPagamentosPage: TEdit;
+    Label5: TLabel;
+    edtListarPagamentosData_Inicial: TEdit;
+    Label6: TLabel;
+    edtListarPagamentosData_Final: TEdit;
+    Button1: TButton;
+    CBListarPagamentosEnviarChaveCliente: TCheckBox;
+    DBGrid1: TDBGrid;
+    Ds_Pagamentos: TDataSource;
+    CDS_Pagamentos: TClientDataSet;
+    edtListarPagamentosOrderId: TEdit;
+    Label7: TLabel;
+    edtCliCNPJ: TMaskEdit;
+    edtCliAtivo: TComboBox;
+
     procedure btnCriarClienteClick(Sender: TObject);
     procedure btnListarClientesClick(Sender: TObject);
     procedure btnDetalharClienteClick(Sender: TObject);
@@ -77,9 +92,29 @@ type
     procedure btnCriarPagamentoClick(Sender: TObject);
     procedure btnListarPagamentosClick(Sender: TObject);
     procedure btnDetalharPagamentoClick(Sender: TObject);
+    procedure btnCancelarPagamentoClick(Sender: TObject);
+    procedure CBExibir_JsonClick(Sender: TObject);
+    procedure DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+      DataCol: Integer; Column: TColumn; State: TGridDrawState);
 
   private
-    procedure LogJSON(AJSON: TJSONObject);
+    procedure LimparMemoLog;
+    procedure AdicionarLinhaLog(const ATexto: string);
+    procedure AdicionarSeparador;
+    procedure LogCliente(ACliente: TCliente; const ATitulo: string = 'CLIENTE');
+    procedure LogListaClientes(AListaClientes: TListaClientes);
+    procedure LogPOS(APOS: TPOS; const ATitulo: string = 'POS');
+    procedure LogListaPOS(AListaPOS: TListaPOS);
+    procedure LogExcluirPOSResponse(AResponse: TExcluirPOSResponse);
+    procedure LogPagamento(APagamento: TPagamento; const ATitulo: string = 'PAGAMENTO');
+    procedure LogListaPagamentos(AListaPagamentos: TListaPagamentos);
+    procedure LogRejeitarPagamentoResponse(AResponse: TRejeitarPagamentoResponse);
+    procedure LogPaymentOrder(APaymentOrder: TPaymentOrder; const AIndentacao: string = '  ');
+    procedure LogPaymentData(APaymentData: TPaymentData; const AIndentacao: string = '  ');
+
+    // Métodos para DataSet (mantidos do original)
+    procedure ConfigurarCamposClientDataSet(aCDS: TClientDataSet);
+    procedure PreencherClientDataSetTipado(aCDS: TClientDataSet; AListaPagamentos: TListaPagamentos);
   public
   end;
 
@@ -90,132 +125,935 @@ implementation
 
 {$R *.dfm}
 
-procedure TForm1.LogJSON(AJSON: TJSONObject);
+// === Métodos auxiliares para log ===
+
+procedure TForm1.LimparMemoLog;
 begin
   MemoLog.Lines.Clear;
-  MemoLog.Lines.Add(AJSON.Format(4));
-  MemoLog.Lines.Add('---');
-  AJSON.Free;
 end;
 
-// === Clientes ===
+procedure TForm1.AdicionarLinhaLog(const ATexto: string);
+begin
+  MemoLog.Lines.Add(ATexto);
+end;
+
+procedure TForm1.AdicionarSeparador;
+begin
+  AdicionarLinhaLog('=====================================');
+end;
+
+procedure TForm1.LogCliente(ACliente: TCliente; const ATitulo: string = 'CLIENTE');
+begin
+  AdicionarLinhaLog('=== ' + ATitulo + ' ===');
+  AdicionarLinhaLog('ID: ' + ACliente.Id.ToString);
+  AdicionarLinhaLog('Status: ' + BoolToStr(ACliente.Status, True));
+  AdicionarLinhaLog('Ativo: ' + ACliente.Ativo.ToString);
+  AdicionarLinhaLog('CNPJ/CPF: ' + ACliente.CNPJ_CPF);
+  AdicionarLinhaLog('Nome Empresa: ' + ACliente.NomeEmpresa);
+  AdicionarLinhaLog('Contato: ' + ACliente.Contato);
+  AdicionarLinhaLog('Limite POS: ' + ACliente.LimitePOS.ToString);
+  AdicionarLinhaLog('Sitef Empresa: ' + ACliente.SitefEmpresa);
+  AdicionarLinhaLog('Sitef CNPJ/CPF: ' + ACliente.SitefCNPJ_CPF);
+  AdicionarLinhaLog('Sitef Banco: ' + ACliente.SitefBanco);
+  AdicionarLinhaLog('Chave: ' + ACliente.Chave);
+  AdicionarLinhaLog('Softhouse ID: ' + ACliente.SofthouseId.ToString);
+  AdicionarLinhaLog('Criado em: ' + ACliente.CreatedAt);
+  AdicionarLinhaLog('Atualizado em: ' + ACliente.UpdatedAt);
+  AdicionarSeparador;
+end;
+
+procedure TForm1.LogListaClientes(AListaClientes: TListaClientes);
+var
+  I: Integer;
+begin
+  AdicionarLinhaLog('=== LISTA DE CLIENTES ===');
+  AdicionarLinhaLog('Total: ' + AListaClientes.Total.ToString);
+  AdicionarLinhaLog('Por Página: ' + AListaClientes.PerPage.ToString);
+  AdicionarLinhaLog('Página Atual: ' + AListaClientes.CurrentPage.ToString);
+  AdicionarLinhaLog('Última Página: ' + AListaClientes.LastPage.ToString);
+  AdicionarLinhaLog('Até: ' + AListaClientes.ToPage.ToString);
+  AdicionarLinhaLog('Registros encontrados: ' + AListaClientes.Data.Count.ToString);
+  AdicionarSeparador;
+
+  for I := 0 to AListaClientes.Data.Count - 1 do
+  begin
+    LogCliente(AListaClientes.Data[I], 'CLIENTE #' + (I + 1).ToString);
+  end;
+end;
+
+procedure TForm1.LogPOS(APOS: TPOS; const ATitulo: string = 'POS');
+begin
+  AdicionarLinhaLog('=== ' + ATitulo + ' ===');
+  AdicionarLinhaLog('ID: ' + APOS.Id.ToString);
+  AdicionarLinhaLog('Status: ' + APOS.Status.ToString);
+  AdicionarLinhaLog('Banco: ' + APOS.Banco);
+  AdicionarLinhaLog('Chave: ' + APOS.Chave);
+  AdicionarLinhaLog('Cliente ID: ' + APOS.ClienteId.ToString);
+  AdicionarLinhaLog('Nome: ' + APOS.Nome);
+  AdicionarLinhaLog('Criado em: ' + APOS.CreatedAt);
+  AdicionarLinhaLog('Atualizado em: ' + APOS.UpdatedAt);
+  AdicionarLinhaLog('Data Ativação: ' + APOS.DateAtivacao);
+  AdicionarLinhaLog('Deletado em: ' + APOS.DeletedAt);
+  AdicionarSeparador;
+end;
+
+procedure TForm1.LogListaPOS(AListaPOS: TListaPOS);
+var
+  I: Integer;
+begin
+  AdicionarLinhaLog('=== LISTA DE POS ===');
+  AdicionarLinhaLog('Total: ' + AListaPOS.Total.ToString);
+  AdicionarLinhaLog('Por Página: ' + AListaPOS.PerPage.ToString);
+  AdicionarLinhaLog('Página Atual: ' + AListaPOS.CurrentPage.ToString);
+  AdicionarLinhaLog('Última Página: ' + AListaPOS.LastPage.ToString);
+  AdicionarLinhaLog('Até: ' + AListaPOS.ToPage.ToString);
+  AdicionarLinhaLog('Registros encontrados: ' + AListaPOS.Data.Count.ToString);
+  AdicionarSeparador;
+
+  for I := 0 to AListaPOS.Data.Count - 1 do
+  begin
+    LogPOS(AListaPOS.Data[I], 'POS #' + (I + 1).ToString);
+  end;
+end;
+
+procedure TForm1.LogExcluirPOSResponse(AResponse: TExcluirPOSResponse);
+begin
+  AdicionarLinhaLog('=== EXCLUSÃO DE POS ===');
+  AdicionarLinhaLog('Mensagem: ' + AResponse.Message);
+  AdicionarSeparador;
+end;
+
+procedure TForm1.LogPaymentOrder(APaymentOrder: TPaymentOrder; const AIndentacao: string = '  ');
+begin
+  AdicionarLinhaLog(AIndentacao + 'PAYMENT ORDER:');
+  AdicionarLinhaLog(AIndentacao + '  POS ID: ' + APaymentOrder.PosId.ToString);
+  AdicionarLinhaLog(AIndentacao + '  Tipo Parcelamento: ' + APaymentOrder.InstallmentType.ToString);
+  AdicionarLinhaLog(AIndentacao + '  Tipo Transação: ' + APaymentOrder.TransactionType);
+  AdicionarLinhaLog(AIndentacao + '  Qtd Parcelas: ' + APaymentOrder.InstallmentCount.ToString);
+  AdicionarLinhaLog(AIndentacao + '  Valor: ' + FormatFloat('#,##0.00', APaymentOrder.Amount));
+  AdicionarLinhaLog(AIndentacao + '  Order ID: ' + APaymentOrder.OrderId);
+  AdicionarLinhaLog(AIndentacao + '  Descrição: ' + APaymentOrder.Description);
+end;
+
+procedure TForm1.LogPaymentData(APaymentData: TPaymentData; const AIndentacao: string = '  ');
+begin
+  AdicionarLinhaLog(AIndentacao + 'PAYMENT DATA:');
+  AdicionarLinhaLog(AIndentacao + '  POS ID: ' + APaymentData.PosId.ToString);
+  AdicionarLinhaLog(AIndentacao + '  ID Payment: ' + APaymentData.IdPayment);
+  AdicionarLinhaLog(AIndentacao + '  Nome Portador: ' + APaymentData.CardholderName);
+  AdicionarLinhaLog(AIndentacao + '  Bandeira: ' + APaymentData.Brand);
+  AdicionarLinhaLog(AIndentacao + '  NSU: ' + APaymentData.NSU);
+  AdicionarLinhaLog(AIndentacao + '  Código Autorização: ' + APaymentData.AuthorizationCode);
+  AdicionarLinhaLog(AIndentacao + '  Data/Hora Autorização: ' + APaymentData.AuthorizationDateTime);
+  AdicionarLinhaLog(AIndentacao + '  Banco Adquirente: ' + APaymentData.AcquirerBanco);
+  AdicionarLinhaLog(AIndentacao + '  CNPJ Adquirente: ' + APaymentData.AcquirerCNPJ);
+end;
+
+procedure TForm1.LogPagamento(APagamento: TPagamento; const ATitulo: string = 'PAGAMENTO');
+begin
+  AdicionarLinhaLog('=== ' + ATitulo + ' ===');
+  AdicionarLinhaLog('Payment Unique ID: ' + APagamento.PaymentUniqueid.ToString);
+  AdicionarLinhaLog('Criado em: ' + APagamento.CreatedAt);
+  AdicionarLinhaLog('Status Pagamento: ' + APagamento.PaymentStatus.ToString);
+  AdicionarLinhaLog('Mensagem Pagamento: ' + APagamento.PaymentMessage);
+  AdicionarLinhaLog('');
+  LogPaymentOrder(APagamento.PaymentOrder);
+  AdicionarLinhaLog('');
+  LogPaymentData(APagamento.PaymentData);
+  AdicionarSeparador;
+end;
+
+procedure TForm1.LogListaPagamentos(AListaPagamentos: TListaPagamentos);
+var
+  I: Integer;
+begin
+  AdicionarLinhaLog('=== LISTA DE PAGAMENTOS ===');
+  AdicionarLinhaLog('Total: ' + AListaPagamentos.Total.ToString);
+  AdicionarLinhaLog('Por Página: ' + AListaPagamentos.PerPage.ToString);
+  AdicionarLinhaLog('Página Atual: ' + AListaPagamentos.CurrentPage.ToString);
+  AdicionarLinhaLog('Última Página: ' + AListaPagamentos.LastPage.ToString);
+  AdicionarLinhaLog('Até: ' + AListaPagamentos.ToPage.ToString);
+  AdicionarLinhaLog('Registros encontrados: ' + AListaPagamentos.Data.Count.ToString);
+  AdicionarSeparador;
+
+  for I := 0 to AListaPagamentos.Data.Count - 1 do
+  begin
+    LogPagamento(AListaPagamentos.Data[I], 'PAGAMENTO #' + (I + 1).ToString);
+  end;
+end;
+
+procedure TForm1.LogRejeitarPagamentoResponse(AResponse: TRejeitarPagamentoResponse);
+begin
+  AdicionarLinhaLog('=== REJEIÇÃO DE PAGAMENTO ===');
+  AdicionarLinhaLog('Status: ' + BoolToStr(AResponse.Status, True));
+  AdicionarLinhaLog('Mensagem: ' + AResponse.Message);
+  AdicionarLinhaLog('');
+  LogPagamento(AResponse.Data, 'DADOS DO PAGAMENTO REJEITADO');
+end;
+
+// === Métodos para DataSet (mantidos e adaptados) ===
+
+procedure TForm1.ConfigurarCamposClientDataSet(aCDS: TClientDataSet);
+begin
+  if aCDS.Active then
+    aCDS.Close;
+
+  aCDS.FieldDefs.Clear;
+
+  with aCDS.FieldDefs do
+  begin
+    Add('payment_uniqueid', ftInteger);
+    Add('created_at', ftString, 30);
+    Add('payment_status', ftInteger);
+    Add('payment_message', ftString, 50);
+
+    // Campos do payment_order
+    Add('order_id', ftString, 50);
+    Add('amount', ftFloat);
+    Add('installment_type', ftInteger);
+    Add('installment_count', ftInteger);
+    Add('transaction_type', ftString, 5);
+    Add('order_pos_id', ftInteger);
+
+    // Campos do payment_data
+    Add('cardholder_name', ftString, 50);
+    Add('brand', ftString, 20);
+    Add('nsu', ftString, 20);
+    Add('authorization_code', ftString, 20);
+    Add('authorization_date_time', ftString, 30);
+    Add('payment_pos_id', ftInteger);
+  end;
+
+  aCDS.CreateDataSet;
+end;
+
+procedure TForm1.DBGrid1DrawColumnCell(Sender: TObject; const Rect: TRect;
+  DataCol: Integer; Column: TColumn; State: TGridDrawState);
+var
+  Grid: TDBGrid;
+  Canvas: TCanvas;
+  TextRect: TRect;
+  Text: string;
+  IsSelected, IsOddRow: Boolean;
+begin
+  Grid := Sender as TDBGrid;
+  Canvas := Grid.Canvas;
+
+  // Determina se a linha está selecionada
+  IsSelected := gdSelected in State;
+
+  // Determina se é linha ímpar (para efeito zebrado)
+  IsOddRow := (Grid.DataSource.DataSet.RecNo mod 2) = 1;
+
+  // === CORES DE FUNDO ===
+  if IsSelected then
+  begin
+    // Linha selecionada - gradiente azul elegante
+    Canvas.Brush.Color := RGB(51, 122, 183);  // Azul moderno
+    Canvas.Font.Color := clWhite;  // SEMPRE branco quando selecionado
+    Canvas.Font.Style := [fsBold];
+  end
+  else if IsOddRow then
+  begin
+    // Linhas ímpares - branco puro
+    Canvas.Brush.Color := clWhite;
+    Canvas.Font.Color := RGB(33, 37, 41);  // Cinza escuro moderno
+    Canvas.Font.Style := [];
+  end
+  else
+  begin
+    // Linhas pares - cinza muito claro (zebrado)
+    Canvas.Brush.Color := RGB(248, 249, 250);  // Cinza muito suave
+    Canvas.Font.Color := RGB(33, 37, 41);
+    Canvas.Font.Style := [];
+  end;
+
+  // === FORMATAÇÃO ESPECIAL POR COLUNA (APENAS QUANDO NÃO SELECIONADA) ===
+  Text := Column.Field.DisplayText;
+
+  if not IsSelected then  // SÓ APLICA CORES ESPECIAIS QUANDO NÃO SELECIONADA
+  begin
+    // Formatar valores monetários
+    if (Column.FieldName = 'amount') and (Column.Field.AsFloat > 0) then
+    begin
+      Text := 'R$ ' + FormatFloat('#,##0.00', Column.Field.AsFloat);
+      Canvas.Font.Color := RGB(40, 167, 69);  // Verde para valores
+      Canvas.Font.Style := [fsBold];
+    end
+
+    // Formatar status de pagamento com cores
+    else if Column.FieldName = 'payment_status' then
+    begin
+      case Column.Field.AsInteger of
+        1: begin
+          Text := 'Solicitado';
+          Canvas.Font.Color := RGB(255, 193, 7);  // Amarelo
+        end;
+        4: begin
+          Text := 'Pago';
+          Canvas.Font.Color := RGB(40, 167, 69);  // Verde
+          Canvas.Font.Style := [fsBold];
+        end;
+        5: begin
+          Text := 'Cancelado';
+          Canvas.Font.Color := RGB(220, 53, 69);  // Vermelho
+        end;
+        else
+          Canvas.Font.Color := RGB(108, 117, 125);  // Cinza neutro
+      end;
+    end
+
+    // Destacar IDs importantes
+    else if (Column.FieldName = 'payment_uniqueid') or
+            (Column.FieldName = 'order_id') then
+    begin
+      Canvas.Font.Color := RGB(102, 16, 242);  // Roxo para IDs
+      Canvas.Font.Style := [fsBold];
+    end
+
+    // Formatar datas - COR CINZA APENAS QUANDO NÃO SELECIONADA
+    else if (Pos('created_at', Column.FieldName) > 0) or
+            (Pos('authorization_date_time', Column.FieldName) > 0) then
+    begin
+      Canvas.Font.Color := RGB(108, 117, 125);  // Cinza para datas
+    end;
+  end
+  else
+  begin
+    // QUANDO SELECIONADA, APLICAR APENAS FORMATAÇÕES DE TEXTO (SEM ALTERAR CORES)
+    if (Column.FieldName = 'amount') and (Column.Field.AsFloat > 0) then
+    begin
+      Text := 'R$ ' + FormatFloat('#,##0.00', Column.Field.AsFloat);
+      Canvas.Font.Style := [fsBold];
+    end
+    else if Column.FieldName = 'payment_status' then
+    begin
+      case Column.Field.AsInteger of
+        1: Text := 'Solicitado';
+        4: begin
+          Text := 'Pago';
+          Canvas.Font.Style := [fsBold];
+        end;
+        5: Text := 'Cancelado';
+      end;
+    end
+    else if (Column.FieldName = 'payment_uniqueid') or
+            (Column.FieldName = 'order_id') then
+    begin
+      Canvas.Font.Style := [fsBold];
+    end;
+  end;
+
+  // Formatar datas (independente da seleção)
+  if (Pos('created_at', Column.FieldName) > 0) or
+     (Pos('authorization_date_time', Column.FieldName) > 0) then
+  begin
+    if not Column.Field.IsNull then
+    begin
+      try
+        // Tentar formatar como data
+        Text := FormatDateTime('dd/mm/yyyy hh:nn', StrToDateTime(Column.Field.AsString));
+      except
+        // Se não conseguir, manter o texto original
+        Text := Column.Field.DisplayText;
+      end;
+    end;
+  end;
+
+  // === DESENHAR FUNDO ===
+  Canvas.FillRect(Rect);
+
+  // === DESENHAR BORDA SUTIL ===
+  if not IsSelected then
+  begin
+    Canvas.Pen.Color := RGB(222, 226, 230);  // Borda muito sutil
+    Canvas.Pen.Width := 1;
+    Canvas.MoveTo(Rect.Left, Rect.Bottom - 1);
+    Canvas.LineTo(Rect.Right, Rect.Bottom - 1);
+  end;
+
+  // === DESENHAR TEXTO ===
+  TextRect := Rect;
+  Inc(TextRect.Left, 8);  // Margem esquerda
+  Dec(TextRect.Right, 8); // Margem direita
+
+  // Centralizar verticalmente
+  Canvas.TextRect(TextRect, TextRect.Left,
+                  TextRect.Top + (TextRect.Height - Canvas.TextHeight(Text)) div 2,
+                  Text);
+
+  // === EFEITO HOVER (quando o mouse estiver sobre a linha) ===
+  if (gdFocused in State) and not IsSelected then
+  begin
+    Canvas.Pen.Color := RGB(51, 122, 183);
+    Canvas.Pen.Width := 2;
+    Canvas.Brush.Style := bsClear;
+    Canvas.RoundRect(Rect.Left, Rect.Top, Rect.Right, Rect.Bottom, 4, 4);
+  end;
+end;
+
+procedure TForm1.PreencherClientDataSetTipado(aCDS: TClientDataSet; AListaPagamentos: TListaPagamentos);
+var
+  I: Integer;
+  Pagamento: TPagamento;
+begin
+  aCDS.DisableControls;
+  try
+    for I := 0 to AListaPagamentos.Data.Count - 1 do
+    begin
+      Pagamento := AListaPagamentos.Data[I];
+
+      aCDS.Append;
+      aCDS.FieldByName('payment_uniqueid').AsInteger := Pagamento.PaymentUniqueid;
+      aCDS.FieldByName('created_at').AsString := Pagamento.CreatedAt;
+      aCDS.FieldByName('payment_status').AsInteger := Pagamento.PaymentStatus;
+      aCDS.FieldByName('payment_message').AsString := Pagamento.PaymentMessage;
+
+      // Payment Order
+      if Assigned(Pagamento.PaymentOrder) then
+      begin
+        aCDS.FieldByName('order_id').AsString := Pagamento.PaymentOrder.OrderId;
+        aCDS.FieldByName('amount').AsFloat := Pagamento.PaymentOrder.Amount;
+        aCDS.FieldByName('installment_type').AsInteger := Pagamento.PaymentOrder.InstallmentType;
+        aCDS.FieldByName('installment_count').AsInteger := Pagamento.PaymentOrder.InstallmentCount;
+        aCDS.FieldByName('transaction_type').AsString := Pagamento.PaymentOrder.TransactionType;
+        aCDS.FieldByName('order_pos_id').AsInteger := Pagamento.PaymentOrder.PosId;
+      end;
+
+      // Payment Data
+      if Assigned(Pagamento.PaymentData) then
+      begin
+        aCDS.FieldByName('cardholder_name').AsString := Pagamento.PaymentData.CardholderName;
+        aCDS.FieldByName('brand').AsString := Pagamento.PaymentData.Brand;
+        aCDS.FieldByName('nsu').AsString := Pagamento.PaymentData.NSU;
+        aCDS.FieldByName('authorization_code').AsString := Pagamento.PaymentData.AuthorizationCode;
+        aCDS.FieldByName('authorization_date_time').AsString := Pagamento.PaymentData.AuthorizationDateTime;
+        aCDS.FieldByName('payment_pos_id').AsInteger := Pagamento.PaymentData.PosId;
+      end;
+
+      aCDS.Post;
+    end;
+  finally
+    aCDS.EnableControls;
+  end;
+end;
+
+// === Eventos dos botões com retornos tipados ===
 
 procedure TForm1.btnCriarClienteClick(Sender: TObject);
+var
+  vAtivo: Integer;
+  Cliente: TCliente;
 begin
+  LimparMemoLog;
+
+  if edtCliAtivo.ItemIndex = 0 then
+    vAtivo := 1
+  else
+    vAtivo := 0;
+
   DTSuperTEF1.Token := edtToken.Text;
 
-  LogJSON(DTSuperTEF1.CriarCliente(
-    StrToIntDef(edtCliAtivo.Text, 1),
-    edtCliCNPJ.Text,
-    edtCliNome.Text,
-    edtCliContato.Text,
-    StrToIntDef(edtCliLimitePOS.Text, 1),
-    edtCliSitefEmpresa.Text,
-    edtCliSitefCNPJ.Text,
-    edtCliSitefBanco.Text
-  ));
+  try
+    Cliente := DTSuperTEF1.CriarCliente(
+      vAtivo,
+      edtCliCNPJ.Text,
+      edtCliNome.Text,
+      edtCliContato.Text,
+      StrToIntDef(edtCliLimitePOS.Text, 1),
+      edtCliSitefEmpresa.Text,
+      edtCliSitefCNPJ.Text,
+      edtCliSitefBanco.Text
+    );
+
+    try
+      LogCliente(Cliente, 'CLIENTE CRIADO');
+      // Salva a chave do cliente criado para uso posterior
+      edtCliChave.Text := Cliente.Chave;
+    finally
+      Cliente.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO CRIAR CLIENTE:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  // Rola para o topo do memo
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnListarClientesClick(Sender: TObject);
+var
+  ListaClientes: TListaClientes;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.ListarClientes);
+
+  try
+    ListaClientes := DTSuperTEF1.ListarClientes;
+    try
+      LogListaClientes(ListaClientes);
+    finally
+      ListaClientes.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO LISTAR CLIENTES:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnDetalharClienteClick(Sender: TObject);
+var
+  Cliente: TCliente;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.DetalharCliente(edtCliChave.Text));
+
+  try
+    Cliente := DTSuperTEF1.DetalharCliente(edtCliChave.Text);
+    try
+      LogCliente(Cliente, 'DETALHES DO CLIENTE');
+    finally
+      Cliente.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO DETALHAR CLIENTE:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnAtualizarClienteClick(Sender: TObject);
+var
+  vAtivo: Integer;
+  Cliente: TCliente;
 begin
+  LimparMemoLog;
+
+  if edtCliAtivo.ItemIndex = 0 then
+    vAtivo := 1
+  else
+    vAtivo := 0;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.AtualizarCliente(
-    edtCliChave.Text,
-    StrToIntDef(edtCliAtivo.Text, 1),
-    edtCliCNPJ.Text,
-    edtCliNome.Text,
-    edtCliContato.Text,
-    StrToIntDef(edtCliLimitePOS.Text, 1),
-    edtCliSitefEmpresa.Text,
-    edtCliSitefCNPJ.Text,
-    edtCliSitefBanco.Text
-  ));
+
+  try
+    Cliente := DTSuperTEF1.AtualizarCliente(
+      edtCliChave.Text,
+      vAtivo,
+      edtCliCNPJ.Text,
+      edtCliNome.Text,
+      edtCliContato.Text,
+      StrToIntDef(edtCliLimitePOS.Text, 1),
+      edtCliSitefEmpresa.Text,
+      edtCliSitefCNPJ.Text,
+      edtCliSitefBanco.Text
+    );
+
+    try
+      LogCliente(Cliente, 'CLIENTE ATUALIZADO');
+    finally
+      Cliente.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO ATUALIZAR CLIENTE:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 // === POS ===
 
 procedure TForm1.btnCriarPOSClick(Sender: TObject);
+var
+  POS: TPOS;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.CriarPOS(
-    edtPOSChaveCliente.Text,
-    StrToIntDef(edtPOSStatus.Text, 1),
-    edtPOSNome.Text
-  ));
+
+  try
+    POS := DTSuperTEF1.CriarPOS(
+      edtCliChave.Text,
+      edtPOSNome.Text
+    );
+
+    try
+      LogPOS(POS, 'POS CRIADO');
+      // Salva o ID do POS criado para uso posterior
+      edtPOSId.Text := POS.Id.ToString;
+    finally
+      POS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO CRIAR POS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnListarPOSClick(Sender: TObject);
+var
+  ListaPOS: TListaPOS;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.ListarPOS(edtPOSChaveCliente.Text));
+
+  try
+    ListaPOS := DTSuperTEF1.ListarPOS(edtCliChave.Text);
+    try
+      LogListaPOS(ListaPOS);
+    finally
+      ListaPOS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO LISTAR POS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnDetalharPOSClick(Sender: TObject);
+var
+  POS: TPOS;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.DetalharPOS(StrToIntDef(edtPOSId.Text, 0)));
+
+  try
+    POS := DTSuperTEF1.DetalharPOS(StrToIntDef(edtPOSId.Text, 0));
+    try
+      LogPOS(POS, 'DETALHES DO POS');
+    finally
+      POS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO DETALHAR POS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnAtualizarPOSClick(Sender: TObject);
+var
+  POS: TPOS;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.AtualizarPOS(
-    StrToIntDef(edtPOSId.Text, 0),
-    edtPOSChaveCliente.Text,
-    StrToIntDef(edtPOSStatus.Text, 1),
-    edtPOSNome.Text
-  ));
+
+  try
+    POS := DTSuperTEF1.AtualizarPOS(
+      StrToIntDef(edtPOSId.Text, 0),
+      edtCliChave.Text,
+      edtPOSNome.Text
+    );
+
+    try
+      LogPOS(POS, 'POS ATUALIZADO');
+    finally
+      POS.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO ATUALIZAR POS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnExcluirPOSClick(Sender: TObject);
+var
+  Response: TExcluirPOSResponse;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.ExcluirPOS(
-    StrToIntDef(edtPOSId.Text, 0),
-    edtPOSChaveCliente.Text
-  ));
+
+  try
+    Response := DTSuperTEF1.ExcluirPOS(
+      StrToIntDef(edtPOSId.Text, 0),
+      edtCliChave.Text
+    );
+
+    try
+      LogExcluirPOSResponse(Response);
+    finally
+      Response.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO EXCLUIR POS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 // === Pagamentos ===
 
 procedure TForm1.btnCriarPagamentoClick(Sender: TObject);
+var
+  Pagamento: TPagamento;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.CriarPagamento(
-    edtPayChaveCliente.Text,
-    StrToIntDef(edtPayPOSId.Text, 0),
-    edtPayTransType.Text,
-    StrToIntDef(edtPayParcelas.Text, 1),
-    StrToIntDef(edtPayParceladoTipo.Text, 1),
-    StrToIntDef(edtPayValor.Text, 0),
-    edtPayOrderID.Text,
-    edtPayDescricao.Text
-  ));
+
+  try
+    Pagamento := DTSuperTEF1.CriarPagamento(
+      edtCliChave.Text,
+      StrToIntDef(edtPayPOSId.Text, 0),
+      edtPayTransType.Text,
+      StrToIntDef(edtPayParcelas.Text, 1),
+      StrToIntDef(edtPayParceladoTipo.Text, 1),
+      StrToFloatDef(edtPayValor.Text, 0),
+      edtPayOrderID.Text,
+      edtPayDescricao.Text
+    );
+
+    try
+      LogPagamento(Pagamento, 'PAGAMENTO CRIADO');
+      // Salva o Unique ID do pagamento criado para uso posterior
+      edtPayUniqueID.Text := Pagamento.PaymentUniqueid.ToString;
+    finally
+      Pagamento.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO CRIAR PAGAMENTO:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnListarPagamentosClick(Sender: TObject);
+var
+  dData_Inicial, dData_Final: TDateTime;
+  ListaPagamentos: TListaPagamentos;
+  currentPage, lastPage: Integer;
+  ListaPagamentosCompleta: TListaPagamentos;
+  I: Integer;
+  PagamentoOriginal, PagamentoCopia: TPagamento;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.ListarPagamentos);
+
+  dData_Inicial := 0;
+  if edtListarPagamentosData_Inicial.Text <> '' then
+    dData_Inicial := StrToDate(edtListarPagamentosData_Inicial.Text);
+
+  dData_Final := 0;
+  if edtListarPagamentosData_Final.Text <> '' then
+    dData_Final := StrToDate(edtListarPagamentosData_Final.Text);
+
+  try
+    // Configura o DataSet
+    ConfigurarCamposClientDataSet(CDS_Pagamentos);
+
+    // Cria uma lista completa para agrupar todas as páginas
+    ListaPagamentosCompleta := TListaPagamentos.Create;
+    try
+      currentPage := 1;
+      repeat
+        ListaPagamentos := DTSuperTEF1.ListarPagamentos(
+          IfThen(CBListarPagamentosEnviarChaveCliente.Checked, edtCliChave.Text, ''),
+          StrToIntDef(edtListarPagamentosPOSId.Text, 0),
+          edtListarPagamentosOrderId.Text,
+          currentPage,
+          dData_Inicial,
+          dData_Final
+        );
+
+        try
+          // Na primeira página, copia os dados de paginação
+          if currentPage = 1 then
+          begin
+            ListaPagamentosCompleta.Total := ListaPagamentos.Total;
+            ListaPagamentosCompleta.PerPage := ListaPagamentos.PerPage;
+            ListaPagamentosCompleta.CurrentPage := ListaPagamentos.CurrentPage;
+            ListaPagamentosCompleta.LastPage := ListaPagamentos.LastPage;
+            ListaPagamentosCompleta.ToPage := ListaPagamentos.ToPage;
+          end;
+
+          // Cria cópias dos pagamentos para evitar problemas de ownership
+          for I := 0 to ListaPagamentos.Data.Count - 1 do
+          begin
+            PagamentoOriginal := ListaPagamentos.Data[I];
+
+            // Cria uma nova instância e copia os dados
+            PagamentoCopia := TPagamento.Create;
+            PagamentoCopia.PaymentUniqueid := PagamentoOriginal.PaymentUniqueid;
+            PagamentoCopia.CreatedAt := PagamentoOriginal.CreatedAt;
+            PagamentoCopia.PaymentStatus := PagamentoOriginal.PaymentStatus;
+            PagamentoCopia.PaymentMessage := PagamentoOriginal.PaymentMessage;
+
+            // Copia PaymentOrder
+            if Assigned(PagamentoOriginal.PaymentOrder) then
+            begin
+              PagamentoCopia.PaymentOrder.PosId := PagamentoOriginal.PaymentOrder.PosId;
+              PagamentoCopia.PaymentOrder.InstallmentType := PagamentoOriginal.PaymentOrder.InstallmentType;
+              PagamentoCopia.PaymentOrder.TransactionType := PagamentoOriginal.PaymentOrder.TransactionType;
+              PagamentoCopia.PaymentOrder.InstallmentCount := PagamentoOriginal.PaymentOrder.InstallmentCount;
+              PagamentoCopia.PaymentOrder.Amount := PagamentoOriginal.PaymentOrder.Amount;
+              PagamentoCopia.PaymentOrder.OrderId := PagamentoOriginal.PaymentOrder.OrderId;
+              PagamentoCopia.PaymentOrder.Description := PagamentoOriginal.PaymentOrder.Description;
+            end;
+
+            // Copia PaymentData
+            if Assigned(PagamentoOriginal.PaymentData) then
+            begin
+              PagamentoCopia.PaymentData.PosId := PagamentoOriginal.PaymentData.PosId;
+              PagamentoCopia.PaymentData.IdPayment := PagamentoOriginal.PaymentData.IdPayment;
+              PagamentoCopia.PaymentData.CardholderName := PagamentoOriginal.PaymentData.CardholderName;
+              PagamentoCopia.PaymentData.Brand := PagamentoOriginal.PaymentData.Brand;
+              PagamentoCopia.PaymentData.NSU := PagamentoOriginal.PaymentData.NSU;
+              PagamentoCopia.PaymentData.AuthorizationCode := PagamentoOriginal.PaymentData.AuthorizationCode;
+              PagamentoCopia.PaymentData.AuthorizationDateTime := PagamentoOriginal.PaymentData.AuthorizationDateTime;
+              PagamentoCopia.PaymentData.AcquirerBanco := PagamentoOriginal.PaymentData.AcquirerBanco;
+              PagamentoCopia.PaymentData.AcquirerCNPJ := PagamentoOriginal.PaymentData.AcquirerCNPJ;
+            end;
+
+            // Adiciona a cópia na lista completa
+            ListaPagamentosCompleta.Data.Add(PagamentoCopia);
+          end;
+
+          lastPage := ListaPagamentos.LastPage;
+          Inc(currentPage);
+        finally
+          ListaPagamentos.Free;
+        end;
+      until currentPage > lastPage;
+
+      // Exibe todos os pagamentos no log
+      LogListaPagamentos(ListaPagamentosCompleta);
+
+      // Preenche o DataSet com todos os dados
+      PreencherClientDataSetTipado(CDS_Pagamentos, ListaPagamentosCompleta);
+
+    finally
+      ListaPagamentosCompleta.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO LISTAR PAGAMENTOS:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
 end;
 
 procedure TForm1.btnDetalharPagamentoClick(Sender: TObject);
+var
+  Pagamento: TPagamento;
 begin
+  LimparMemoLog;
+
   DTSuperTEF1.Token := edtToken.Text;
-  LogJSON(DTSuperTEF1.DetalharPagamento(StrToIntDef(edtPayUniqueID.Text, 0)));
+
+  try
+    Pagamento := DTSuperTEF1.DetalharPagamento(StrToIntDef(edtPayUniqueID.Text, 0));
+    try
+      LogPagamento(Pagamento, 'DETALHES DO PAGAMENTO');
+    finally
+      Pagamento.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO DETALHAR PAGAMENTO:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
+end;
+
+procedure TForm1.btnCancelarPagamentoClick(Sender: TObject);
+var
+  Response: TRejeitarPagamentoResponse;
+begin
+  LimparMemoLog;
+
+  DTSuperTEF1.Token := edtToken.Text;
+
+  try
+    Response := DTSuperTEF1.RejeitarPagamento(StrToIntDef(edtPayUniqueID.Text, 0));
+    try
+      LogRejeitarPagamentoResponse(Response);
+    finally
+      Response.Free;
+    end;
+  except
+    on E: Exception do
+    begin
+      AdicionarLinhaLog('ERRO AO CANCELAR PAGAMENTO:');
+      AdicionarLinhaLog(E.Message);
+    end;
+  end;
+
+  MemoLog.SelStart := 0;
+  MemoLog.Perform(EM_SCROLLCARET, 0, 0);
+end;
+
+procedure TForm1.CBExibir_JsonClick(Sender: TObject);
+begin
+  MemoLog.Visible := CBExibir_Json.Checked;
 end;
 
 end.
-

@@ -3,8 +3,8 @@ object Form1: TForm1
   Top = 0
   BorderIcons = [biSystemMenu]
   Caption = 'DEMO DTSuperTEF'
-  ClientHeight = 687
-  ClientWidth = 800
+  ClientHeight = 756
+  ClientWidth = 790
   Color = clBtnFace
   Font.Charset = DEFAULT_CHARSET
   Font.Color = clWindowText
@@ -21,11 +21,13 @@ object Form1: TForm1
     Visible = False
   end
   object PageControl1: TPageControl
-    Left = 8
-    Top = 8
-    Width = 780
-    Height = 369
-    ActivePage = tsPagamentos
+    Left = 0
+    Top = 43
+    Width = 790
+    Height = 417
+    Cursor = crHandPoint
+    ActivePage = tsClientes
+    Align = alClient
     TabOrder = 0
     object tsClientes: TTabSheet
       Caption = 'Clientes'
@@ -85,42 +87,12 @@ object Form1: TForm1
         Height = 15
         Caption = 'Sitef Banco'
       end
-      object LabelCliChave: TLabel
-        Left = 240
-        Top = 0
-        Width = 73
-        Height = 15
-        Caption = 'Chave Cliente'
-      end
-      object Label2: TLabel
-        Left = 446
-        Top = 0
-        Width = 122
-        Height = 15
-        Caption = 'Token de Acesso da SH'
-      end
-      object edtCliAtivo: TEdit
-        Left = 16
-        Top = 16
-        Width = 200
-        Height = 23
-        TabOrder = 0
-        Text = '1'
-      end
-      object edtCliCNPJ: TEdit
-        Left = 16
-        Top = 56
-        Width = 200
-        Height = 23
-        TabOrder = 1
-        Text = '24.649.142/0001-42'
-      end
       object edtCliNome: TEdit
         Left = 16
         Top = 96
         Width = 200
         Height = 23
-        TabOrder = 2
+        TabOrder = 1
         Text = 'Cliente Teste'
       end
       object edtCliContato: TEdit
@@ -128,7 +100,7 @@ object Form1: TForm1
         Top = 136
         Width = 200
         Height = 23
-        TabOrder = 3
+        TabOrder = 2
         Text = '(11) 99999-9999'
       end
       object edtCliLimitePOS: TEdit
@@ -136,7 +108,7 @@ object Form1: TForm1
         Top = 176
         Width = 200
         Height = 23
-        TabOrder = 4
+        TabOrder = 3
         Text = '5'
       end
       object edtCliSitefEmpresa: TEdit
@@ -144,7 +116,7 @@ object Form1: TForm1
         Top = 216
         Width = 200
         Height = 23
-        TabOrder = 5
+        TabOrder = 4
         Text = '12345678'
       end
       object edtCliSitefCNPJ: TEdit
@@ -152,7 +124,7 @@ object Form1: TForm1
         Top = 256
         Width = 200
         Height = 23
-        TabOrder = 6
+        TabOrder = 5
         Text = '12345678900'
       end
       object edtCliSitefBanco: TEdit
@@ -160,122 +132,105 @@ object Form1: TForm1
         Top = 296
         Width = 200
         Height = 23
-        TabOrder = 7
+        TabOrder = 6
         Text = 'sicred'
-      end
-      object edtCliChave: TEdit
-        Left = 240
-        Top = 16
-        Width = 200
-        Height = 23
-        TabOrder = 8
-        Text = 'CHAVE_AQUI'
       end
       object btnCriarCliente: TButton
         Left = 240
-        Top = 56
+        Top = 15
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Criar Cliente'
-        TabOrder = 9
+        TabOrder = 7
         OnClick = btnCriarClienteClick
       end
       object btnListarClientes: TButton
         Left = 240
-        Top = 88
+        Top = 47
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Listar Clientes'
-        TabOrder = 10
+        TabOrder = 8
         OnClick = btnListarClientesClick
       end
       object btnDetalharCliente: TButton
         Left = 240
-        Top = 120
+        Top = 79
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Detalhar Cliente'
-        TabOrder = 11
+        TabOrder = 9
         OnClick = btnDetalharClienteClick
       end
       object btnAtualizarCliente: TButton
         Left = 240
-        Top = 152
+        Top = 111
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Atualizar Cliente'
-        TabOrder = 12
+        TabOrder = 10
         OnClick = btnAtualizarClienteClick
       end
-      object edtToken: TEdit
-        Left = 446
-        Top = 16
-        Width = 323
+      object edtCliCNPJ: TMaskEdit
+        Left = 16
+        Top = 57
+        Width = 200
         Height = 23
-        TabOrder = 13
-        Text = 'TOKEN_AKI'
+        EditMask = '##.###.###/####-##'
+        MaxLength = 18
+        TabOrder = 0
+        Text = '  .   .   /    -  '
+      end
+      object edtCliAtivo: TComboBox
+        Left = 16
+        Top = 16
+        Width = 200
+        Height = 22
+        Style = csOwnerDrawFixed
+        Color = clInfoBk
+        ItemIndex = 0
+        TabOrder = 11
+        Text = 'SIM'
+        StyleElements = [seFont, seBorder]
+        Items.Strings = (
+          'SIM'
+          'NAO')
       end
     end
     object tsPOS: TTabSheet
       Caption = 'POS'
-      object LabelPOSChave: TLabel
-        Left = 16
-        Top = 0
-        Width = 73
-        Height = 15
-        Caption = 'Chave Cliente'
-      end
-      object LabelPOSStatus: TLabel
-        Left = 16
-        Top = 40
-        Width = 32
-        Height = 15
-        Caption = 'Status'
-      end
       object LabelPOSNome: TLabel
-        Left = 16
-        Top = 80
+        Left = 4
+        Top = 2
         Width = 58
         Height = 15
         Caption = 'Nome POS'
       end
       object LabelPOSId: TLabel
-        Left = 16
-        Top = 120
+        Left = 4
+        Top = 42
         Width = 36
         Height = 15
         Caption = 'POS ID'
       end
-      object edtPOSChaveCliente: TEdit
-        Left = 16
-        Top = 16
+      object edtPOSNome: TEdit
+        Left = 4
+        Top = 18
         Width = 200
         Height = 23
         TabOrder = 0
-        Text = 'CHAVE_CLIENTE'
-      end
-      object edtPOSStatus: TEdit
-        Left = 16
-        Top = 56
-        Width = 200
-        Height = 23
-        TabOrder = 1
-        Text = '1'
-      end
-      object edtPOSNome: TEdit
-        Left = 16
-        Top = 96
-        Width = 200
-        Height = 23
-        TabOrder = 2
         Text = 'POS Teste'
       end
       object edtPOSId: TEdit
-        Left = 16
-        Top = 136
+        Left = 4
+        Top = 58
         Width = 200
         Height = 23
-        TabOrder = 3
+        TabOrder = 1
         Text = '0'
       end
       object btnCriarPOS: TButton
@@ -283,8 +238,9 @@ object Form1: TForm1
         Top = 17
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Criar POS'
-        TabOrder = 4
+        TabOrder = 2
         OnClick = btnCriarPOSClick
       end
       object btnListarPOS: TButton
@@ -292,8 +248,9 @@ object Form1: TForm1
         Top = 48
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Listar POS'
-        TabOrder = 5
+        TabOrder = 3
         OnClick = btnListarPOSClick
       end
       object btnDetalharPOS: TButton
@@ -301,8 +258,9 @@ object Form1: TForm1
         Top = 80
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Detalhar POS'
-        TabOrder = 6
+        TabOrder = 4
         OnClick = btnDetalharPOSClick
       end
       object btnAtualizarPOS: TButton
@@ -310,8 +268,9 @@ object Form1: TForm1
         Top = 112
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Atualizar POS'
-        TabOrder = 7
+        TabOrder = 5
         OnClick = btnAtualizarPOSClick
       end
       object btnExcluirPOS: TButton
@@ -319,65 +278,59 @@ object Form1: TForm1
         Top = 144
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Excluir POS'
-        TabOrder = 8
+        TabOrder = 6
         OnClick = btnExcluirPOSClick
       end
     end
     object tsPagamentos: TTabSheet
       Caption = 'Pagamentos'
-      object LabelPayChave: TLabel
-        Left = 16
-        Top = 0
-        Width = 73
-        Height = 15
-        Caption = 'Chave Cliente'
-      end
       object LabelPayPOSId: TLabel
         Left = 16
-        Top = 40
+        Top = 0
         Width = 36
         Height = 15
         Caption = 'POS ID'
       end
       object LabelPayTransType: TLabel
         Left = 16
-        Top = 80
+        Top = 40
         Width = 89
         Height = 15
         Caption = 'Transaction Type'
       end
       object LabelPayParcelas: TLabel
         Left = 16
-        Top = 120
+        Top = 80
         Width = 43
         Height = 15
         Caption = 'Parcelas'
       end
       object LabelPayParceladoTipo: TLabel
         Left = 16
-        Top = 160
+        Top = 120
         Width = 79
         Height = 15
         Caption = 'Parcelado Tipo'
       end
       object LabelPayValor: TLabel
         Left = 16
-        Top = 200
+        Top = 160
         Width = 26
         Height = 15
         Caption = 'Valor'
       end
       object LabelPayOrderID: TLabel
         Left = 16
-        Top = 240
+        Top = 200
         Width = 44
         Height = 15
         Caption = 'Order ID'
       end
       object LabelPayDescricao: TLabel
         Left = 16
-        Top = 280
+        Top = 240
         Width = 51
         Height = 15
         Caption = 'Descri'#231#227'o'
@@ -389,23 +342,23 @@ object Form1: TForm1
         Height = 15
         Caption = 'Unique ID'
       end
-      object edtPayChaveCliente: TEdit
+      object edtPayPOSId: TEdit
         Left = 16
         Top = 16
         Width = 200
         Height = 23
         TabOrder = 0
-        Text = 'CHAVE_CLIENTE'
+        Text = '43'
       end
-      object edtPayPOSId: TEdit
+      object edtPayTransType: TEdit
         Left = 16
         Top = 56
         Width = 200
         Height = 23
         TabOrder = 1
-        Text = '43'
+        Text = '1'
       end
-      object edtPayTransType: TEdit
+      object edtPayParcelas: TEdit
         Left = 16
         Top = 96
         Width = 200
@@ -413,7 +366,7 @@ object Form1: TForm1
         TabOrder = 2
         Text = '1'
       end
-      object edtPayParcelas: TEdit
+      object edtPayParceladoTipo: TEdit
         Left = 16
         Top = 136
         Width = 200
@@ -421,36 +374,28 @@ object Form1: TForm1
         TabOrder = 3
         Text = '1'
       end
-      object edtPayParceladoTipo: TEdit
+      object edtPayValor: TEdit
         Left = 16
         Top = 176
         Width = 200
         Height = 23
         TabOrder = 4
-        Text = '1'
+        Text = '10'
       end
-      object edtPayValor: TEdit
+      object edtPayOrderID: TEdit
         Left = 16
         Top = 216
         Width = 200
         Height = 23
         TabOrder = 5
-        Text = '10'
+        Text = 'ORD123'
       end
-      object edtPayOrderID: TEdit
+      object edtPayDescricao: TEdit
         Left = 16
         Top = 256
         Width = 200
         Height = 23
         TabOrder = 6
-        Text = 'ORD123'
-      end
-      object edtPayDescricao: TEdit
-        Left = 16
-        Top = 296
-        Width = 200
-        Height = 23
-        TabOrder = 7
         Text = 'Pagamento de teste'
       end
       object edtPayUniqueID: TEdit
@@ -458,7 +403,7 @@ object Form1: TForm1
         Top = 16
         Width = 200
         Height = 23
-        TabOrder = 8
+        TabOrder = 7
         Text = '0'
       end
       object btnCriarPagamento: TButton
@@ -466,8 +411,9 @@ object Form1: TForm1
         Top = 48
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Criar Pagamento'
-        TabOrder = 9
+        TabOrder = 8
         OnClick = btnCriarPagamentoClick
       end
       object btnListarPagamentos: TButton
@@ -475,8 +421,9 @@ object Form1: TForm1
         Top = 80
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Listar Pagamentos'
-        TabOrder = 10
+        TabOrder = 9
         OnClick = btnListarPagamentosClick
       end
       object btnDetalharPagamento: TButton
@@ -484,17 +431,149 @@ object Form1: TForm1
         Top = 111
         Width = 120
         Height = 25
+        Cursor = crHandPoint
         Caption = 'Detalhar Pagamento'
-        TabOrder = 11
+        TabOrder = 10
         OnClick = btnDetalharPagamentoClick
+      end
+      object btnCancelarPagamento: TButton
+        Left = 240
+        Top = 142
+        Width = 120
+        Height = 25
+        Cursor = crHandPoint
+        Caption = 'Rejeitar Pagamento'
+        TabOrder = 11
+        OnClick = btnCancelarPagamentoClick
+      end
+    end
+    object TabPagamentos: TTabSheet
+      Caption = 'Relat'#243'rio de Pagamentos'
+      ImageIndex = 3
+      object Panel2: TPanel
+        Left = 0
+        Top = 0
+        Width = 782
+        Height = 110
+        Align = alTop
+        AutoSize = True
+        BevelOuter = bvNone
+        BorderWidth = 2
+        TabOrder = 0
+        object Label3: TLabel
+          Left = 4
+          Top = 25
+          Width = 98
+          Height = 15
+          Caption = 'POS ID (Opcional):'
+        end
+        object Label4: TLabel
+          Left = 415
+          Top = 25
+          Width = 88
+          Height = 15
+          Caption = 'Page (Opcional):'
+        end
+        object Label5: TLabel
+          Left = 4
+          Top = 67
+          Width = 256
+          Height = 15
+          Caption = 'Data Inicial (Opcional) (Informar DD/MM/YYYY):'
+        end
+        object Label6: TLabel
+          Left = 268
+          Top = 67
+          Width = 250
+          Height = 15
+          Caption = 'Data Final (Opcional) (Informar DD/MM/YYYY):'
+        end
+        object Label7: TLabel
+          Left = 209
+          Top = 25
+          Width = 106
+          Height = 15
+          Caption = 'Order ID (Opcional):'
+        end
+        object edtListarPagamentosPOSId: TEdit
+          Left = 4
+          Top = 41
+          Width = 200
+          Height = 23
+          TabOrder = 0
+        end
+        object edtListarPagamentosPage: TEdit
+          Left = 415
+          Top = 41
+          Width = 200
+          Height = 23
+          TabOrder = 1
+        end
+        object edtListarPagamentosData_Inicial: TEdit
+          Left = 4
+          Top = 83
+          Width = 200
+          Height = 23
+          TabOrder = 2
+        end
+        object edtListarPagamentosData_Final: TEdit
+          Left = 268
+          Top = 83
+          Width = 200
+          Height = 23
+          TabOrder = 3
+        end
+        object Button1: TButton
+          Left = 646
+          Top = 83
+          Width = 120
+          Height = 25
+          Caption = 'Listar Pagamentos'
+          TabOrder = 4
+          OnClick = btnListarPagamentosClick
+        end
+        object CBListarPagamentosEnviarChaveCliente: TCheckBox
+          Left = 4
+          Top = 2
+          Width = 221
+          Height = 17
+          Caption = 'Enviar chave cliente na requisi'#231#227'o?'
+          TabOrder = 5
+        end
+        object edtListarPagamentosOrderId: TEdit
+          Left = 209
+          Top = 41
+          Width = 200
+          Height = 23
+          TabOrder = 6
+        end
+      end
+      object DBGrid1: TDBGrid
+        Left = 0
+        Top = 110
+        Width = 782
+        Height = 277
+        Cursor = crHandPoint
+        Align = alClient
+        DataSource = Ds_Pagamentos
+        DefaultDrawing = False
+        Options = [dgTitles, dgIndicator, dgColumnResize, dgColLines, dgRowLines, dgTabs, dgRowSelect, dgConfirmDelete, dgCancelOnExit, dgTitleClick, dgTitleHotTrack]
+        TabOrder = 1
+        TitleFont.Charset = DEFAULT_CHARSET
+        TitleFont.Color = clWindowText
+        TitleFont.Height = -12
+        TitleFont.Name = 'Segoe UI'
+        TitleFont.Style = []
+        OnDrawColumnCell = DBGrid1DrawColumnCell
       end
     end
   end
   object MemoLog: TMemo
-    Left = 8
-    Top = 383
-    Width = 780
+    Left = 0
+    Top = 460
+    Width = 790
     Height = 296
+    Align = alBottom
     Color = 4934475
     Font.Charset = ANSI_CHARSET
     Font.Color = clWhite
@@ -506,9 +585,72 @@ object Form1: TForm1
     TabOrder = 1
     StyleElements = [seFont, seBorder]
   end
+  object Panel1: TPanel
+    Left = 0
+    Top = 0
+    Width = 790
+    Height = 43
+    Align = alTop
+    AutoSize = True
+    BevelOuter = bvNone
+    BorderWidth = 2
+    TabOrder = 2
+    object Label2: TLabel
+      Left = 11
+      Top = 2
+      Width = 122
+      Height = 15
+      Caption = 'Token de Acesso da SH'
+    end
+    object LabelCliChave: TLabel
+      Left = 336
+      Top = 2
+      Width = 73
+      Height = 15
+      Caption = 'Chave Cliente'
+    end
+    object edtToken: TEdit
+      Left = 11
+      Top = 18
+      Width = 323
+      Height = 23
+      TabOrder = 0
+      Text = 'f4a3b656f28cd4a3314e3d62adb7a1bfaf352313dbf8b15f1f5824ebbb963859'
+    end
+    object edtCliChave: TEdit
+      Left = 336
+      Top = 18
+      Width = 200
+      Height = 23
+      TabOrder = 1
+      Text = '6866b0d65b8ff'
+    end
+    object CBExibir_Json: TCheckBox
+      Left = 542
+      Top = 20
+      Width = 149
+      Height = 17
+      Caption = 'Exibir Resultado do Json?'
+      Checked = True
+      State = cbChecked
+      TabOrder = 2
+      OnClick = CBExibir_JsonClick
+    end
+  end
   object DTSuperTEF1: TDTSuperTEF
     BaseURL = 'https://api.supertef.com.br/api/'
-    Left = 528
-    Top = 104
+    Left = 523
+    Top = 271
+  end
+  object Ds_Pagamentos: TDataSource
+    DataSet = CDS_Pagamentos
+    Left = 428
+    Top = 271
+  end
+  object CDS_Pagamentos: TClientDataSet
+    Aggregates = <>
+    Params = <>
+    Left = 322
+    Top = 271
   end
 end
