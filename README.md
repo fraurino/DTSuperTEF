@@ -11,6 +11,30 @@
 O **SuperTEF** é uma solução de pagamento digital com foco em automação comercial. O componente **DTSuperTEF** permite integrar com a API SuperTEF diretamente em projetos Delphi para realizar gestão de clientes, terminais POS e transações.
 
 ---
+# 🎯 Versões Disponíveis
+
+## 📦 Lazarus 4.0 (Free Pascal)
+- **Compatibilidade:** Lazarus 2.0.0+ / Free Pascal 3.0.4+  
+- **Plataformas:** Windows, Linux, macOS  
+
+### Características:
+- Componentes nativos (`TFPHTTPClient`)  
+- Suporte a OpenSSL para HTTPS  
+- Listas genéricas (`FGL`)  
+- JSON nativo (`fpjson`)  
+
+---
+
+## 🔷 Delphi
+- **Compatibilidade:** Delphi 7 até Delphi 12   
+- **Plataformas:** Windows (Win32/Win64)  
+
+### Características:
+- Componentes REST nativos  
+- `System.Generics.Collections`  
+- `System.JSON`  
+
+---
 
 ## ✨ Recursos Implementados
 

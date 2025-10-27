@@ -1,0 +1,32 @@
+unit DTSuperTEF;
+
+{$mode ObjFPC}{$H+}
+
+interface
+
+uses
+  Classes, SysUtils, LResources, Forms, Controls, Graphics, Dialogs, StdCtrls;
+
+type
+  TDTSuperTEF = class(TEdit)
+  private
+
+  protected
+
+  public
+
+  published
+
+  end;
+
+procedure Register;
+
+implementation
+
+procedure Register;
+begin
+  {$I dtsupertef_icon.lrs}
+  RegisterComponents('DTInovacao',[TDTSuperTEF]);
+end;
+
+end.
