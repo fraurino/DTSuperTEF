@@ -1,0 +1,452 @@
+unit USupertef_Pagamentos;
+
+interface
+
+uses
+  System.SysUtils,
+  Registry,
+  Windows,
+  System.Classes,
+  System.JSON,
+  IdBaseComponent,
+  IdComponent,
+  IdIOHandler,
+  IdIOHandlerSocket,
+  IdIOHandlerStack,
+  IdHTTP,
+  ShellAPI,
+  IdSMTP,
+  IdSSL,
+  IdSSLOpenSSL,
+  IdMessage,
+  IdText,
+  IdAttachmentFile,
+  IdExplicitTLSClientServerBase, RegularExpressions, IniFiles, DTSuperTEF;
+
+implementation
+
+const
+  URL = 'https://api.supertef.com.br/api';
+
+var
+
+  ResultLeRegistro: string[255];
+
+  // Var supertef
+  Vpayment_uniqueid, Vpayment_status, Vpayment_message, Vid_payment,
+    Vcardholder_name, Vbrand, Vnsu, Vauthorization_code,
+    Vauthorization_date_time: string;
+
+function GetDllPath: string;
+var
+  Buffer: array [0 .. MAX_PATH] of Char;
+begin
+  SetString(Result, Buffer, GetModuleFileName(HInstance, Buffer,
+    Length(Buffer)));
+end;
+
+procedure Pagamento_Cadastro(authorization_sh, chave_cliente: WideString;
+  pos_id, transaction_type, installment_count, installment_type: Integer;
+  amount: WideString; order_id, description: WideString;
+  Result: PAnsiChar); stdcall;
+var
+  SuperTEF: TDTSuperTEF;
+  Resp, JSONResponse: TJSONObject;
+  ResultLeRegistro: string;
+begin
+  try
+    try
+      SuperTEF := TDTSuperTEF.Create(nil);
+      try
+        SuperTEF.BaseURL := 'https://api.supertef.com.br/api';
+        SuperTEF.Token := authorization_sh;
+
+        // Cria o pagamento
+        Resp := SuperTEF.CriarPagamento(chave_cliente, pos_id,
+          IntToStr(transaction_type), installment_count, installment_type,
+          StrToCurrDef(amount, 0), order_id, description);
+      finally
+        SuperTEF.Free;
+      end;
+
+      // Trata a resposta JSON
+      JSONResponse := TJSONObject.ParseJSONValue(Resp.ToJSON) as TJSONObject;
+      try
+        if Assigned(JSONResponse) then
+        begin
+          Vpayment_uniqueid := '';
+          Vpayment_status := '';
+          Vpayment_message := '';
+          if JSONResponse.GetValue('payment_uniqueid') <> nil then
+          begin
+            Vpayment_uniqueid := JSONResponse.GetValue
+              ('payment_uniqueid').Value;
+            Vpayment_status := JSONResponse.GetValue('payment_status').Value;
+            Vpayment_message := JSONResponse.GetValue('payment_message').Value;
+            ResultLeRegistro := 'TRUE';
+          end
+          else if JSONResponse.GetValue('error') <> nil then
+          begin
+            ResultLeRegistro := JSONResponse.GetValue('error').Value;
+          end
+          else
+          begin
+            ResultLeRegistro := JSONResponse.ToJSON;
+          end;
+        end
+        else
+          ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+      finally
+        JSONResponse.Free;
+        Resp.Free;
+      end;
+
+    except
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+
+  finally
+    // Garante cópia segura de até 255 caracteres
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 255));
+  end;
+end;
+
+procedure Pagamento_Detalha(authorization_sh: WideString;
+  payment_uniqueid: Integer; Result: PAnsiChar); stdcall;
+var
+  SuperTEF: TDTSuperTEF;
+  Resp, JSONResponse, JSONPaymentData: TJSONObject;
+  JSONArrayErrors: TJSONArray;
+  ErrorMsg: string;
+  ResultLeRegistro: string;
+begin
+  try
+    try
+      SuperTEF := TDTSuperTEF.Create(nil);
+      try
+        SuperTEF.BaseURL := 'https://api.supertef.com.br/api';
+        SuperTEF.Token := authorization_sh;
+
+        Resp := SuperTEF.DetalharPagamento(payment_uniqueid);
+      finally
+        SuperTEF.Free;
+      end;
+
+      JSONResponse := TJSONObject.ParseJSONValue(Resp.ToJSON) as TJSONObject;
+      try
+        if Assigned(JSONResponse) then
+        begin
+          // Verifica se existe um campo de erro
+          if JSONResponse.GetValue('errors') <> nil then
+          begin
+            JSONArrayErrors := JSONResponse.GetValue('errors') as TJSONArray;
+            if (JSONArrayErrors.Count > 0) and
+              (JSONArrayErrors.Items[0] is TJSONArray) and
+              ((JSONArrayErrors.Items[0] as TJSONArray).Count > 0) then
+            begin
+              ErrorMsg := (JSONArrayErrors.Items[0] as TJSONArray)
+                .Items[0].Value;
+              ResultLeRegistro := 'Erro: ' + ErrorMsg;
+            end
+            else
+              ResultLeRegistro := 'Erro desconhecido no campo "errors".';
+          end
+          else
+          begin
+            // Se não tiver erro, segue o processamento normal
+            Vpayment_uniqueid := '';
+            Vpayment_status := '';
+            Vpayment_message := '';
+            Vid_payment := '';
+            Vcardholder_name := '';
+            Vbrand := '';
+            Vnsu := '';
+            Vauthorization_code := '';
+            Vauthorization_date_time := '';
+
+            Vpayment_uniqueid := JSONResponse.GetValue
+              ('payment_uniqueid').Value;
+            Vpayment_status := JSONResponse.GetValue('payment_status').Value;
+            Vpayment_message := JSONResponse.GetValue('payment_message').Value;
+
+            JSONPaymentData := JSONResponse.GetValue('payment_data')
+              as TJSONObject;
+            if Assigned(JSONPaymentData) then
+            begin
+              JSONPaymentData.TryGetValue('id_payment', Vid_payment);
+              JSONPaymentData.TryGetValue('cardholder_name', Vcardholder_name);
+              JSONPaymentData.TryGetValue('brand', Vbrand);
+              JSONPaymentData.TryGetValue('nsu', Vnsu);
+              JSONPaymentData.TryGetValue('authorization_code',
+                Vauthorization_code);
+              JSONPaymentData.TryGetValue('authorization_date_time',
+                Vauthorization_date_time);
+            end;
+
+            ResultLeRegistro := 'TRUE';
+          end;
+        end
+        else
+          ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+      finally
+        JSONResponse.Free;
+        Resp.Free;
+      end;
+
+    except
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 255));
+  end;
+end;
+
+procedure Pagamento_Rejeita(authorization_sh: WideString;
+  payment_uniqueid: Integer; Result: PAnsiChar); stdcall;
+var
+  SuperTEF: TDTSuperTEF;
+  Resp, JSONResponse: TJSONObject;
+  JSONArrayErrors: TJSONArray;
+  ErrorMsg: string;
+  ResultLeRegistro: string;
+  status: string;
+begin
+  try
+    try
+      SuperTEF := TDTSuperTEF.Create(nil);
+      try
+        SuperTEF.BaseURL := 'https://api.supertef.com.br/api';
+        SuperTEF.Token := authorization_sh;
+
+        Resp := SuperTEF.RejeitarPagamento(payment_uniqueid);
+      finally
+        SuperTEF.Free;
+      end;
+
+      JSONResponse := TJSONObject.ParseJSONValue(Resp.ToJSON) as TJSONObject;
+      try
+        if Assigned(JSONResponse) then
+        begin
+
+          Vpayment_uniqueid := '';
+          Vpayment_status := '';
+          Vpayment_message := '';
+          Vid_payment := '';
+          Vcardholder_name := '';
+          Vbrand := '';
+          Vnsu := '';
+          Vauthorization_code := '';
+          Vauthorization_date_time := '';
+          if JSONResponse.GetValue('status') <> nil then
+          begin
+            if JSONResponse.GetValue('status').Value = 'false' then
+            begin
+              // Verifica se existe um campo de erro
+              if JSONResponse.GetValue('errors') <> nil then
+              begin
+                JSONArrayErrors := JSONResponse.GetValue('errors')
+                  as TJSONArray;
+                if (JSONArrayErrors.Count > 0) and
+                  (JSONArrayErrors.Items[0] is TJSONArray) and
+                  ((JSONArrayErrors.Items[0] as TJSONArray).Count > 0) then
+                begin
+                  ErrorMsg := (JSONArrayErrors.Items[0] as TJSONArray)
+                    .Items[0].Value;
+                  ResultLeRegistro := 'Erro: ' + ErrorMsg;
+                end
+                else
+                  ResultLeRegistro := 'Erro desconhecido no campo "errors".';
+
+              end
+              else
+              begin
+                  ResultLeRegistro := 'TRUE';
+              end;
+            end;
+          end
+          else
+          begin
+            ResultLeRegistro := 'Erro desconhecido no JSON';
+          end;
+
+        end
+        else
+          ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+      finally
+        JSONResponse.Free;
+        Resp.Free;
+      end;
+
+    except
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 255));
+  end;
+end;
+
+procedure ListaPOS(authorization_sh, chave_cliente: WideString;
+  Result: PAnsiChar); stdcall;
+var
+  SuperTEF: TDTSuperTEF;
+  Resp, JSONResponse: TJSONObject;
+  JSONArray: TJSONArray;
+  Item: TJSONObject;
+  ResultLeRegistro, Linha, INIPath: string;
+  ArquivoIni: TIniFile;
+  i: Integer;
+  BANCO, ID, NOME, status: string;
+begin
+  try
+    try
+      SuperTEF := TDTSuperTEF.Create(nil);
+      try
+        SuperTEF.BaseURL := 'https://api.supertef.com.br/api';
+        SuperTEF.Token := authorization_sh;
+
+        Resp := SuperTEF.ListarPOS(chave_cliente);
+      finally
+        SuperTEF.Free;
+      end;
+
+      JSONResponse := TJSONObject.ParseJSONValue(Resp.ToJSON) as TJSONObject;
+      try
+        if Assigned(JSONResponse) then
+        begin
+          // Verifica se é uma resposta de erro
+          if JSONResponse.GetValue('error') <> nil then
+          begin
+            ResultLeRegistro := JSONResponse.GetValue('error').Value;
+          end
+          else
+          begin
+            JSONArray := JSONResponse.GetValue('data') as TJSONArray;
+            if Assigned(JSONArray) then
+            begin
+              ResultLeRegistro := '';
+              INIPath := ExtractFilePath(GetDllPath) + 'SuperTefListaPOS.ini';
+              DeleteFile(PWideChar(INIPath));
+              ArquivoIni := TIniFile.Create(INIPath);
+              try
+                for i := 0 to JSONArray.Count - 1 do
+                begin
+                  Item := JSONArray.Items[i] as TJSONObject;
+                  ID := Item.GetValue('id').Value;
+                  NOME := Item.GetValue('nome').Value;
+                  status := Item.GetValue('status').Value;
+                  BANCO := Item.GetValue('banco').Value;
+
+                  // Escreve no INI
+                  ArquivoIni.WriteString(IntToStr(i), 'ID', ID);
+                  ArquivoIni.WriteString(IntToStr(i), 'NOME', NOME);
+                  ArquivoIni.WriteString(IntToStr(i), 'STATUS', status);
+                  ArquivoIni.WriteString(IntToStr(i), 'BANCO', BANCO);
+                end;
+                ResultLeRegistro := 'TRUE';
+              finally
+                ArquivoIni.Free;
+              end;
+            end
+            else
+              ResultLeRegistro := 'Erro: campo "data" ausente ou inválido.';
+          end;
+        end
+        else
+          ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+      finally
+        JSONResponse.Free;
+        Resp.Free;
+      end;
+
+    except
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 4095)); // até 4KB
+  end;
+end;
+
+procedure Pagamento_payment_uniqueid(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_uniqueid;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_uniqueid := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_payment_status(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_status;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_status := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_payment_message(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_message;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_message := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_id_payment(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vid_payment;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vid_payment := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_cardholder_name(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vcardholder_name;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vcardholder_name := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_brand(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vbrand;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vbrand := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_nsu(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vnsu;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vnsu := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_authorization_code(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vauthorization_code;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vauthorization_code := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_authorization_date_time(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vauthorization_date_time;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vauthorization_date_time := '';
+  ResultLeRegistro := '';
+end;
+
+exports Pagamento_Cadastro, Pagamento_Detalha, ListaPOS,
+  Pagamento_payment_uniqueid, Pagamento_payment_status,
+  Pagamento_payment_message, Pagamento_id_payment, Pagamento_cardholder_name,
+  Pagamento_brand, Pagamento_nsu, Pagamento_authorization_code,
+  Pagamento_authorization_date_time;
+
+end.

@@ -1,0 +1,457 @@
+unit USupertef_Pagamentos;
+
+interface
+
+uses
+  System.SysUtils,
+  Registry,
+  Windows,
+  System.Classes,
+  System.JSON,
+  IdBaseComponent,
+  IdComponent,
+  IdIOHandler,
+  IdIOHandlerSocket,
+  IdIOHandlerStack,
+  IdHTTP,
+  ShellAPI,
+  IdSMTP,
+  IdSSL,
+  IdSSLOpenSSL,
+  IdMessage,
+  IdText,
+  IdAttachmentFile,
+  IdExplicitTLSClientServerBase, RegularExpressions,IniFiles;
+
+implementation
+
+const
+  URL = 'https://api.supertef.com.br/api';
+
+var
+
+  ResultLeRegistro: string[255];
+
+  // Var supertef
+  Vpayment_uniqueid, Vpayment_status, Vpayment_message, Vid_payment,
+    Vcardholder_name, Vbrand, Vnsu, Vauthorization_code,
+    Vauthorization_date_time: string;
+
+function GetDllPath: string;
+var
+  Buffer: array [0 .. MAX_PATH] of Char;
+begin
+  SetString(Result, Buffer, GetModuleFileName(HInstance, Buffer,
+    Length(Buffer)));
+end;
+
+procedure Pagamento_Cadastro(authorization_sh, chave_cliente: WideString;
+  pos_id, transaction_type, installment_count, installment_type: integer;
+  amount: WideString; order_id, description: WideString;
+  Result: PAnsiChar); stdcall;
+var
+  vIdHTTP: TIdHTTP;
+  vIdSSLIOHandlerSocketOpenSSL: TIdSSLIOHandlerSocketOpenSSL;
+  JSONBody: TStringStream;
+  JSONObject, JSONResponse: TJSONObject;
+  Response, ResultLeRegistro: string;
+
+begin
+  try
+    vIdSSLIOHandlerSocketOpenSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+    vIdHTTP := TIdHTTP.Create(nil);
+    try
+      // URL base
+
+      // Configurações SSL
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.Method := sslvSSLv2;
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.SSLVersions :=
+        [sslvTLSv1_2, sslvTLSv1_1, sslvTLSv1];
+      vIdHTTP.IOHandler := vIdSSLIOHandlerSocketOpenSSL;
+
+      // Cabeçalhos HTTP
+      vIdHTTP.Request.Accept := 'application/json';
+      vIdHTTP.Request.ContentType := 'application/json';
+      vIdHTTP.Request.Connection := 'Keep-Alive';
+      vIdHTTP.Request.UserAgent :=
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36';
+      vIdHTTP.Request.CustomHeaders.Values['Authorization'] := 'Bearer ' +
+        authorization_sh;
+      vIdHTTP.HandleRedirects := True;
+      vIdHTTP.ConnectTimeout := 10000;
+      vIdHTTP.ReadTimeout := 10000;
+
+      // Criação do JSON
+      JSONObject := TJSONObject.Create;
+      try
+        JSONObject.AddPair('cliente_chave', chave_cliente);
+
+        if pos_id <> 0 then
+          JSONObject.AddPair('pos_id', TJSONNumber.Create(pos_id))
+        else
+          JSONObject.AddPair('pos_id', TJSONNull.Create);
+
+        JSONObject.AddPair('transaction_type',
+          TJSONNumber.Create(transaction_type));
+        JSONObject.AddPair('installment_count',
+          TJSONNumber.Create(installment_count));
+        JSONObject.AddPair('installment_type',
+          TJSONNumber.Create(installment_type));
+
+        amount := StringReplace(amount, ',', '.', [rfReplaceAll]);
+        // ponto como separador decimal
+        JSONObject.AddPair('amount', TJSONNumber.Create(amount));
+        JSONObject.AddPair('order_id', order_id);
+        JSONObject.AddPair('description', description);
+
+        JSONBody := TStringStream.Create(JSONObject.ToJSON, TEncoding.UTF8);
+        try
+          Response := vIdHTTP.Post(URL + '/pagamentos', JSONBody);
+
+          // Verifica se o status HTTP é 201 (Created)
+          if vIdHTTP.ResponseCode = 201 then
+          begin
+            JSONResponse := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+            try
+              if Assigned(JSONResponse) then
+              begin
+                Vpayment_uniqueid := '';
+                Vpayment_status := '';
+                Vpayment_message := '';
+                Vpayment_uniqueid := JSONResponse.GetValue
+                  ('payment_uniqueid').Value;
+                Vpayment_status := JSONResponse.GetValue
+                  ('payment_status').Value;
+                Vpayment_message := JSONResponse.GetValue
+                  ('payment_message').Value;
+                ResultLeRegistro := 'TRUE';
+              end
+              else
+                ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+            finally
+              JSONResponse.Free;
+            end;
+          end
+          else
+          begin
+            // Exibe o body mesmo com status diferente de 201
+            ResultLeRegistro := 'Erro HTTP ' + IntToStr(vIdHTTP.ResponseCode) +
+              ': ' + Response;
+          end;
+        finally
+          JSONBody.Free;
+        end;
+      finally
+        JSONObject.Free;
+      end;
+
+    except
+      on E: EIdHTTPProtocolException do
+        ResultLeRegistro := 'Erro HTTP: ' + IntToStr(E.ErrorCode) + ' - ' +
+          E.ErrorMessage;
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 255));
+    vIdHTTP.Free;
+    vIdSSLIOHandlerSocketOpenSSL.Free;
+  end;
+end;
+
+procedure Pagamento_Detalha(authorization_sh: WideString;
+  payment_uniqueid: integer; Result: PAnsiChar); stdcall;
+var
+  vIdHTTP: TIdHTTP;
+  vIdSSLIOHandlerSocketOpenSSL: TIdSSLIOHandlerSocketOpenSSL;
+  JSONBody: TStringStream;
+  JSONObject, JSONResponse, JSONPaymentData: TJSONObject;
+  Response, ResultLeRegistro: string;
+
+begin
+  try
+    vIdSSLIOHandlerSocketOpenSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+    vIdHTTP := TIdHTTP.Create(nil);
+    try
+      // URL base
+
+      // Configurações SSL
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.Method := sslvSSLv2;
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.SSLVersions :=
+        [sslvTLSv1_2, sslvTLSv1_1, sslvTLSv1];
+      vIdHTTP.IOHandler := vIdSSLIOHandlerSocketOpenSSL;
+
+      // Cabeçalhos HTTP
+      vIdHTTP.Request.Accept := 'application/json';
+      vIdHTTP.Request.ContentType := 'application/json';
+      vIdHTTP.Request.Connection := 'Keep-Alive';
+      vIdHTTP.Request.UserAgent :=
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36';
+      vIdHTTP.Request.CustomHeaders.Values['Authorization'] := 'Bearer ' +
+        authorization_sh;
+      vIdHTTP.HandleRedirects := True;
+      vIdHTTP.ConnectTimeout := 10000;
+      vIdHTTP.ReadTimeout := 10000;
+
+      try
+        Response := vIdHTTP.Get(URL + '/pagamentos/by-uniqueid/' +
+          IntToStr(payment_uniqueid));
+
+        // Verifica se o status HTTP é 201 (Created)
+        if vIdHTTP.ResponseCode = 200 then
+        begin
+          JSONResponse := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+          try
+            if Assigned(JSONResponse) then
+            begin
+              Vpayment_uniqueid := '';
+              Vpayment_status := '';
+              Vpayment_message := '';
+              Vid_payment := '';
+              Vcardholder_name := '';
+              Vbrand := '';
+              Vnsu := '';
+              Vauthorization_code := '';
+              Vauthorization_date_time := '';
+
+              Vpayment_uniqueid := JSONResponse.GetValue
+                ('payment_uniqueid').Value;
+              Vpayment_status := JSONResponse.GetValue('payment_status').Value;
+              Vpayment_message := JSONResponse.GetValue
+                ('payment_message').Value;
+
+              // Acessar o objeto "payment_data"
+              JSONPaymentData := JSONResponse.GetValue('payment_data')
+                as TJSONObject;
+              if Assigned(JSONPaymentData) then
+              begin
+                // Verifica se os campos existem antes de acessar
+                if JSONPaymentData.TryGetValue('id_payment', Vid_payment) then;
+                if JSONPaymentData.TryGetValue('cardholder_name',
+                  Vcardholder_name) then;
+                if JSONPaymentData.TryGetValue('brand', Vbrand) then;
+                if JSONPaymentData.TryGetValue('nsu', Vnsu) then;
+                if JSONPaymentData.TryGetValue('authorization_code',
+                  Vauthorization_code) then;
+                if JSONPaymentData.TryGetValue('authorization_date_time',
+                  Vauthorization_date_time) then;
+              end;
+
+              ResultLeRegistro := 'TRUE';
+            end
+            else
+              ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+          finally
+            JSONResponse.Free;
+          end;
+        end
+        else
+        begin
+          // Exibe o body mesmo com status diferente de 201
+          ResultLeRegistro := 'Erro HTTP ' + IntToStr(vIdHTTP.ResponseCode) +
+            ': ' + Response;
+        end;
+      finally
+        JSONBody.Free;
+      end;
+
+    except
+      on E: EIdHTTPProtocolException do
+        ResultLeRegistro := 'Erro HTTP: ' + IntToStr(E.ErrorCode) + ' - ' +
+          E.ErrorMessage;
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 255));
+    vIdHTTP.Free;
+    vIdSSLIOHandlerSocketOpenSSL.Free;
+  end;
+end;
+
+procedure ListaPOS(authorization_sh, chave_cliente: WideString; Result: PAnsiChar); stdcall;
+var
+  vIdHTTP: TIdHTTP;
+  vIdSSLIOHandlerSocketOpenSSL: TIdSSLIOHandlerSocketOpenSSL;
+  JSONResponse: TJSONObject;
+  JSONArray: TJSONArray;
+  Item: TJSONObject;
+  Response, ResultLeRegistro, Linha, INIPath: string;
+  i: Integer;
+  ID, NOME, STATUS: string;
+  ArquivoIni: TIniFile;
+
+  function GetDllPath: string;
+  var
+    Buffer: array[0..MAX_PATH] of Char;
+  begin
+    FillChar(Buffer, SizeOf(Buffer), 0);
+    GetModuleFileName(HInstance, Buffer, MAX_PATH);
+    Result := ExtractFilePath(Buffer);
+  end;
+
+begin
+  try
+    vIdSSLIOHandlerSocketOpenSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+    vIdHTTP := TIdHTTP.Create(nil);
+    try
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.Method := sslvSSLv2;
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.SSLVersions := [sslvTLSv1_2, sslvTLSv1_1, sslvTLSv1];
+      vIdHTTP.IOHandler := vIdSSLIOHandlerSocketOpenSSL;
+
+      vIdHTTP.Request.Accept := 'application/json';
+      vIdHTTP.Request.ContentType := 'application/json';
+      vIdHTTP.Request.Connection := 'Keep-Alive';
+      vIdHTTP.Request.UserAgent :=
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36';
+      vIdHTTP.Request.CustomHeaders.Values['Authorization'] := 'Bearer ' + authorization_sh;
+      vIdHTTP.HandleRedirects := True;
+      vIdHTTP.ConnectTimeout := 10000;
+      vIdHTTP.ReadTimeout := 10000;
+
+      try
+        Response := vIdHTTP.Get(URL + '/pos?cliente_chave=' + chave_cliente);
+
+        if vIdHTTP.ResponseCode = 200 then
+        begin
+          JSONResponse := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+          try
+            if Assigned(JSONResponse) then
+            begin
+              JSONArray := JSONResponse.GetValue('data') as TJSONArray;
+              if Assigned(JSONArray) then
+              begin
+                ResultLeRegistro := '';
+
+                INIPath := GetDllPath + 'ListaPOSsupertef.ini';
+                DeleteFile(PWideChar(INIPath));
+                ArquivoIni := TIniFile.Create(INIPath);
+                try
+                  for i := 0 to JSONArray.Count - 1 do
+                  begin
+                    Item := JSONArray.Items[i] as TJSONObject;
+
+                    ID     := Item.GetValue('id').Value;
+                    NOME   := Item.GetValue('nome').Value;
+                    STATUS := Item.GetValue('status').Value;
+
+                    // Adiciona à string de retorno (opcional)
+                    Linha := 'ID=' + ID + '; Nome=' + NOME + '; Status=' + STATUS;
+                    ResultLeRegistro := 'TRUE';
+
+                    // Salva no .ini
+                    ArquivoIni.WriteString(IntToStr(i), 'ID', ID);
+                    ArquivoIni.WriteString(IntToStr(i), 'NOME', NOME);
+                    ArquivoIni.WriteString(IntToStr(i), 'STATUS', STATUS);
+                  end;
+                finally
+                  ArquivoIni.Free;
+                end;
+              end
+              else
+                ResultLeRegistro := 'Erro: campo "data" ausente ou inválido.';
+            end
+            else
+              ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+          finally
+            JSONResponse.Free;
+          end;
+        end
+        else
+          ResultLeRegistro := 'Erro HTTP ' + IntToStr(vIdHTTP.ResponseCode) + ': ' + Response;
+      except
+        on E: EIdHTTPProtocolException do
+          ResultLeRegistro := 'Erro HTTP: ' + IntToStr(E.ErrorCode) + ' - ' + E.ErrorMessage;
+        on E: Exception do
+          ResultLeRegistro := 'Erro: ' + E.Message;
+      end;
+
+    finally
+      vIdHTTP.Free;
+      vIdSSLIOHandlerSocketOpenSSL.Free;
+    end;
+  finally
+    StrPCopy(Result, Copy(ResultLeRegistro, 1, 4095)); // Result é PAnsiChar
+  end;
+end;
+
+procedure Pagamento_payment_uniqueid(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_uniqueid;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_uniqueid := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_payment_status(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_status;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_status := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_payment_message(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_message;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_message := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_id_payment(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vid_payment;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vid_payment := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_cardholder_name(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vcardholder_name;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vcardholder_name := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_brand(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vbrand;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vbrand := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_nsu(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vnsu;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vnsu := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_authorization_code(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vauthorization_code;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vauthorization_code := '';
+  ResultLeRegistro := '';
+end;
+
+procedure Pagamento_authorization_date_time(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vauthorization_date_time;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vauthorization_date_time := '';
+  ResultLeRegistro := '';
+end;
+
+exports Pagamento_Cadastro,Pagamento_Detalha, Pagamento_payment_uniqueid,
+  Pagamento_payment_status, Pagamento_payment_message, Pagamento_id_payment,
+  Pagamento_cardholder_name, Pagamento_brand, Pagamento_nsu,
+  Pagamento_authorization_code,Pagamento_authorization_date_time;
+
+end.

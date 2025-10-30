@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2025/06/26 15:03:32.000.616,C:\Users\gabriel\Documents\Embarcadero\Studio\Projects\Project4.dproj=C:\Users\gabriel\Documents\Embarcadero\Studio\Projects\supertef.dproj</Transaction>
+    <Transaction>2025/06/26 15:03:48.000.125,C:\Users\gabriel\Documents\Embarcadero\Studio\Projects\supertef.dproj=C:\GitHub\SuperTefFacil\SuperTef Dll\supertef.dproj</Transaction>
+    <Transaction>2025/06/26 15:09:51.000.883,=C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UChatGPT.pas</Transaction>
+    <Transaction>2025/06/26 15:09:51.000.982,=C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UFidelizar.pas</Transaction>
+    <Transaction>2025/06/26 15:09:51.000.929,=C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UCnpjWs.pas</Transaction>
+    <Transaction>2025/06/26 15:10:04.000.130,C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UChatGPT.pas=</Transaction>
+    <Transaction>2025/06/26 15:11:16.000.373,C:\GitHub\SuperTefFacil\SuperTef Dll\supertef.dproj=C:\GitHub\SuperTefFacil\SuperTef Dll\supertef_versao.dproj</Transaction>
+    <Transaction>2025/06/26 15:11:23.000.064,C:\GitHub\SuperTefFacil\SuperTef Dll\supertef_versao.dproj=C:\GitHub\SuperTefFacil\SuperTef Dll\supertef_versao_1.dproj</Transaction>
+    <Transaction>2025/06/26 15:12:03.000.085,C:\GitHub\SuperTefFacil\SuperTef Dll\supertef_versao_1.dproj=C:\GitHub\SuperTefFacil\SuperTef Dll\supertef.dproj</Transaction>
+    <Transaction>2025/06/26 15:12:53.000.034,C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UFidelizar.pas=</Transaction>
+    <Transaction>2025/06/26 15:13:08.000.924,C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UCnpjWs.pas=C:\GitHub\SuperTefFacil\SuperTef Dll\Classes\UApiSupertef.pas</Transaction>
+    <Transaction>2025/06/26 16:00:51.000.574,C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\Classes\UApiSupertef.pas=C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\Classes\USupertef_Pagamentos.pas</Transaction>
+    <Transaction>2025/07/09 08:59:28.000.753,=C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\DTSuperTEF.pas</Transaction>
+    <Transaction>2025/07/23 18:05:55.000.847,C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\Classes\USupertef_Pagamentos.pas=</Transaction>
+    <Transaction>2025/07/23 18:06:28.000.710,=C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\Classes\USupertef_Pagamentos.pas</Transaction>
+    <Transaction>2025/07/23 18:13:08.000.862,=C:\Sistemas\lanchoneteweb\PROJETOS\SuperTef Dll\Classes\DTSuperTEF.pas</Transaction>
+  </Transactions>
+</BorlandProject>

@@ -1,0 +1,163 @@
+unit UApiSupertef;
+
+interface
+
+uses
+  System.SysUtils,
+  Registry,
+  Windows,
+  System.Classes,
+  System.JSON,
+  IdBaseComponent,
+  IdComponent,
+  IdIOHandler,
+  IdIOHandlerSocket,
+  IdIOHandlerStack,
+  IdHTTP,
+  ShellAPI,
+  IdSMTP,
+  IdSSL,
+  IdSSLOpenSSL,
+  IdMessage,
+  IdText,
+  IdAttachmentFile,
+  IdExplicitTLSClientServerBase, RegularExpressions;
+
+implementation
+
+const
+  URL = 'https://api.supertef.com.br/api';
+
+var
+
+  ResultLeRegistro: string[255];
+
+  // Var supertef
+  Vpayment_uniqueid, Vpayment_status, Vpayment_message: string;
+
+procedure Pagamento_Cadastro(authorization_sh, chave_cliente: WideString;
+  pos_id, transaction_type, installment_count, installment_type: integer;
+  amount: WideString; order_id, description: WideString;
+  Result: PAnsiChar); stdcall;
+var
+  vIdHTTP: TIdHTTP;
+  vIdSSLIOHandlerSocketOpenSSL: TIdSSLIOHandlerSocketOpenSSL;
+  JSONBody: TStringStream;
+  JSONObject, JSONResponse: TJSONObject;
+  Response, ResultLeRegistro: string;
+
+begin
+  try
+    vIdSSLIOHandlerSocketOpenSSL := TIdSSLIOHandlerSocketOpenSSL.Create(nil);
+    vIdHTTP := TIdHTTP.Create(nil);
+    try
+      // URL base
+
+      // Configurações SSL
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.Method := sslvSSLv2;
+      vIdSSLIOHandlerSocketOpenSSL.SSLOptions.SSLVersions :=
+        [sslvTLSv1_2, sslvTLSv1_1, sslvTLSv1];
+      vIdHTTP.IOHandler := vIdSSLIOHandlerSocketOpenSSL;
+
+      // Cabeçalhos HTTP
+      vIdHTTP.Request.Accept := 'application/json';
+      vIdHTTP.Request.ContentType := 'application/json';
+      vIdHTTP.Request.Connection := 'Keep-Alive';
+      vIdHTTP.Request.UserAgent :=
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.96 Safari/537.36';
+      vIdHTTP.Request.CustomHeaders.Values['Authorization'] := 'Bearer ' +
+        authorization_sh;
+      vIdHTTP.HandleRedirects := True;
+      vIdHTTP.ConnectTimeout := 10000;
+      vIdHTTP.ReadTimeout := 10000;
+
+      // Criação do JSON
+      JSONObject := TJSONObject.Create;
+      try
+        JSONObject.AddPair('cliente_chave', chave_cliente);
+
+        if pos_id <> 0 then
+          JSONObject.AddPair('pos_id', TJSONNumber.Create(pos_id))
+        else
+          JSONObject.AddPair('pos_id', TJSONNull.Create);
+
+        JSONObject.AddPair('transaction_type',
+          TJSONNumber.Create(transaction_type));
+        JSONObject.AddPair('installment_count',
+          TJSONNumber.Create(installment_count));
+        JSONObject.AddPair('installment_type',
+          TJSONNumber.Create(installment_type));
+
+        amount := StringReplace(amount, ',', '.', [rfReplaceAll]);
+        // ponto como separador decimal
+        JSONObject.AddPair('amount', TJSONNumber.Create(amount));
+        JSONObject.AddPair('order_id', order_id);
+        JSONObject.AddPair('description', description);
+
+        JSONBody := TStringStream.Create(JSONObject.ToJSON, TEncoding.UTF8);
+        try
+          Response := vIdHTTP.Post(URL + '/pagamentos', JSONBody);
+
+          // Verifica se o status HTTP é 201 (Created)
+          if vIdHTTP.ResponseCode = 201 then
+          begin
+            JSONResponse := TJSONObject.ParseJSONValue(Response) as TJSONObject;
+            try
+              if Assigned(JSONResponse) then
+              begin
+                Vpayment_uniqueid := '';
+                Vpayment_status := '';
+                Vpayment_message := '';
+                Vpayment_uniqueid := JSONResponse.GetValue
+                  ('payment_uniqueid').Value;
+                Vpayment_status := JSONResponse.GetValue
+                  ('payment_status').Value;
+                Vpayment_message := JSONResponse.GetValue
+                  ('payment_message').Value;
+                ResultLeRegistro := 'TRUE';
+              end
+              else
+                ResultLeRegistro := 'Erro: JSON de resposta inválido.';
+            finally
+              JSONResponse.Free;
+            end;
+          end
+          else
+          begin
+            // Exibe o body mesmo com status diferente de 201
+            ResultLeRegistro := 'Erro HTTP ' + IntToStr(vIdHTTP.ResponseCode) +
+              ': ' + Response;
+          end;
+        finally
+          JSONBody.Free;
+        end;
+      finally
+        JSONObject.Free;
+      end;
+
+    except
+      on E: EIdHTTPProtocolException do
+        ResultLeRegistro := 'Erro HTTP: ' + IntToStr(E.ErrorCode) + ' - ' +
+          E.ErrorMessage;
+      on E: Exception do
+        ResultLeRegistro := 'Erro: ' + E.Message;
+    end;
+
+  finally
+    StrPCopy(Result, ResultLeRegistro);
+    vIdHTTP.Free;
+    vIdSSLIOHandlerSocketOpenSSL.Free;
+  end;
+end;
+
+procedure Pagamento_payment_uniqueid(Result: PAnsiChar); stdcall;
+begin
+  ResultLeRegistro := Vpayment_uniqueid;
+  StrPCopy(Result, (ResultLeRegistro));
+  Vpayment_uniqueid := '';
+  ResultLeRegistro := '';
+end;
+
+exports Pagamento_Cadastro, Pagamento_payment_uniqueid;
+
+end.
